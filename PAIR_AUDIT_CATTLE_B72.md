@@ -1,0 +1,16 @@
+# Аудит пар «КРС × препарат» — батч 72 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники по доступным страницам — не подтверждены; правки по подтверждённым дозам в батчах по собакам/кошкам (по аналогии).
+
+| id | Препарат | Было (КРС) | calc/ver | Доаудитные расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 1803 | Колифур | calc={"dose_per_kg": 50000, "dose_min": 25000, "dose_max": 100000, "method": "перорально (с водой)", "fre | ver={"dose_per_kg": 50000.0, "dose_min": 25000.0, "dose_max": 100000.0, "method": "перорально (с водой)" | доаудитных расхождений нет | conc=None | global: МЕ/мл 50000 (40000.0–60000.0) |
+| 1804 | Гидродокс® 50% | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "1 раз в сут | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "1 раз | доаудитных расхождений нет | conc=500.0 | global: мг/мл 10.0 (8.0–12.0) |
+| 1805 | УниСол | calc=null | ver=null | доаудитных расхождений нет | conc=5.0 | global: мг/мл 0 (0–0) |
+| 1806 | Квивитан | calc={"dose_per_kg": 1.0, "dose_min": 0.8, "dose_max": 1.2, "dose_unit": "мг/кг", "method": "Подкожно", " | ver={"dose_per_kg": 1.0, "dose_min": 0.8, "dose_max": 1.2, "dose_unit": "мг/кг", "method": "Подкожно", " | доаудитных расхождений нет | conc=25.0 | global: мг/мл 1 (0.8–1.2) |
+| 1808 | Сеетек® 20% | calc={"dose_per_kg": 10, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "method": "Перорально", | ver={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "method": "Перорально | доаудитных расхождений нет | conc=200.0 | global: мг/мл 10 (8.0–12.0) |
+| 1809 | Азитронит® М | calc={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "frequency": "1 раз в | ver={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "frequency": "1 раз в | доаудитных расхождений нет | conc=100.0 | global: мг/мл 10.0 (8.0–12.0) |
+| 1810 | Гидродокс® 10% оральный раствор | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "1 раз в сут | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "1 раз | доаудитных расхождений нет | conc=100.0 | global: мг/мл 10.0 (8.0–12.0) |
+| 1811 | Гидродокс® 10% | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "1 раз в сут | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "1 раз | доаудитных расхождений нет | conc=100.0 | global: мг/мл 10.0 (8.0–12.0) |
+| 1817 | Дефенсор-3 | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=1.0 | global: мг/мл 0 (0–0) |
+| 1819 | Семинтра® | calc={"dose_per_kg": 1.0, "dose_unit": "мг/кг", "frequency": "1 раз в сутки", "notes": "Из файла: Семинтр | ver={"dose_per_kg": 1.0, "dose_unit": "мг/кг", "frequency": "1 раз в сутки", "notes": "Из файла: Семинтр | доаудитных расхождений нет | conc=4.0 | global: мг/мл 1.0 (0.8–1.2) |

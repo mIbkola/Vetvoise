@@ -1,0 +1,16 @@
+# Аудит пар «КРС × препарат» — батч 25 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники по доступным страницам — не подтверждены; правки по подтверждённым дозам в батчах по собакам/кошкам (по аналогии).
+
+| id | Препарат | Было (КРС) | calc/ver | Доаудитные расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 610 | Метронид-Э | calc={"dose_per_kg": 15.0, "dose_min": 10.0, "dose_max": 20.0, "dose_unit": "мг/кг", "frequency": "по инс | ver={"dose_per_kg": 15.0, "dose_min": 10.0, "dose_max": 20.0, "dose_unit": "мг/кг", "method": "внутрь",  | course_days: calc='5-7 дней' ver='5-7', method: calc=None ver='внутрь', route: calc='внутрь' ver=None | conc=200.0 | global: мг/мл 15.0 (10.0–20.0) |
+| 611 | Левофлок-Э-10 | calc={"dose_per_kg": 50000, "dose_min": 25000, "dose_max": 100000, "method": "перорально (с водой)", "fre | ver={"dose_per_kg": 50000.0, "dose_min": 25000.0, "dose_max": 100000.0, "method": "перорально (с водой)" | доаудитных расхождений нет | conc=50.0 | global: мг/мл 10 (8.0–12.0) |
+| 613 | Санофлай® | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "1 раз в месяц", | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "наружно", "f | method: calc=None ver='наружно', route: calc='наружно' ver=None | conc=10.0 | global: мг/мл 0 (0–0) |
+| 614 | Кокловир | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=20.0 | global: мг/мл 0 (0–0) |
+| 615 | Тилодокс Р | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "1 раз в сут | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "1 раз | доаудитных расхождений нет | conc=100.0 | global: мг/мл 5 (4.0–6.0) |
+| 616 | ВНИИЗЖ НБ-Эн | calc=null | ver=null | доаудитных расхождений нет | conc=4.0 | global: мг/мл 0 (0–0) |
+| 620 | Адвокат® кошки | calc={"dose_per_kg": 0.2, "dose_min": 0.1, "dose_max": 0.3, "method": "перорально", "frequency": "однокра | ver={"dose_per_kg": 0.2, "dose_min": 0.1, "dose_max": 0.3, "method": "перорально", "frequency": "однокра | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0.25 (0.25–0.25) |
+| 629 | Байкокс® 5% | calc={"dose_per_kg": 15, "dose_min": 12.0, "dose_max": 18.0, "dose_unit": "мг/кг", "method": "Перорально" | ver={"dose_per_kg": 15.0, "dose_min": 12.0, "dose_max": 18.0, "dose_unit": "мг/кг", "method": "Пероральн | доаудитных расхождений нет | conc=50.0 | global: мг/мл 15 (12.0–18.0) |
+| 632 | Сантел 10% раствор для инъекций | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", " | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=100.0 | global: мг/мл 5 (4.0–6.0) |
+| 634 | УНГОВАК FN | calc=null | ver=null | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0 (0–0) |

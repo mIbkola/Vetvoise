@@ -1,0 +1,16 @@
+# Аудит пар «Свиньи × препарат» — батч 46 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники не подтверждены; расхождения calc/ver зафиксированы в сводке `SWINE_DIFF_SUMMARY.md`.
+
+| id | Препарат | Было (Свиньи) | calc/ver | Расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 1042 | Сультримикс | calc={"dose_per_kg": 4.0, "dose_min": 3.2, "dose_max": 4.8, "dose_unit": "мг/кг", "frequency": "1 раз в с | ver={"dose_per_kg": 4.0, "dose_min": 3.2, "dose_max": 4.8, "dose_unit": "мг/кг", "frequency": "1 раз в с | доаудитных расхождений нет | conc=40.0 | global: мг/мл 4.0 (3.2–4.8) |
+| 1043 | ГЕНТАФЛОКС® инъекционный | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Инъекционно",  | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Инъекционно" | доаудитных расхождений нет | conc=65.0 | global: мг/мл 5 (4.0–6.0) |
+| 1048 | Риботан | calc=null | ver=null | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0.1 (0.1–0.2) |
+| 1052 | "Пастос" | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=20.0 | global: мг/мл 0 (0–0) |
+| 1057 | Ганаминовит | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "method": "внутрь (с кормом/в | ver={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "method": "внутрь (с кормом/в | course_days: calc='4-8 дней' ver=None, frequency: calc='1 раз в день' ver='по схеме', notes: calc='по инструкции (с кормом или водой)' ver='по инструкции' | conc=0.1 | global: мг/мл 0 (0–0) |
+| 1058 | Тиеркал | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Внутримышечно" | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Внутримышечн | доаудитных расхождений нет | conc=50.0 | global: мг/мл 1 (0.8–1.2) |
+| 1060 | Пастервакарм-2 | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=20.0 | global: мг/мл 0 (0–0) |
+| 1062 | Оксилонг® ретард | calc={"dose_per_kg": 10, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "method": "Инъекционно" | ver={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "method": "Инъекционн | доаудитных расхождений нет | conc=200.0 | global: мг/мл 10 (8.0–12.0) |
+| 1065 | Ганамектин | calc={"dose_per_kg": 0.3, "dose_min": 0.24, "dose_max": 0.36, "dose_unit": "мг/кг", "method": "Инъекционн | ver={"dose_per_kg": 0.3, "dose_min": 0.24, "dose_max": 0.36, "dose_unit": "мг/кг", "method": "Инъекционн | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0.2 (0.16000000000000003–0.24) |
+| 1067 | Пуревакс RCP | calc=null | ver=null | доаудитных расхождений нет | conc=1.0 | global: мг/мл 0 (0–0) |

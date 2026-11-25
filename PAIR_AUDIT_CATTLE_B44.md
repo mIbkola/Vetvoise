@@ -1,0 +1,16 @@
+# Аудит пар «КРС × препарат» — батч 44 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники по доступным страницам — не подтверждены; правки по подтверждённым дозам в батчах по собакам/кошкам (по аналогии).
+
+| id | Препарат | Было (КРС) | calc/ver | Доаудитные расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 1040 | Гамавит | calc={"dose_per_kg": 0.1, "dose_unit": "мл/кг", "dose_min": 0.1, "dose_max": 0.1, "method": "внутримышечн | ver={"dose_per_kg": 0.1, "dose_min": 0.1, "dose_max": 0.1, "dose_unit": "мл/кг", "method": "внутримышечн | доаудитных расхождений нет | conc=0.02 | global: мг/мл 0.3 (0.1–1.5) |
+| 1042 | Сультримикс | calc={"dose_per_kg": 4.0, "dose_min": 3.2, "dose_max": 4.8, "dose_unit": "мг/кг", "frequency": "1 раз в с | ver={"dose_per_kg": 4.0, "dose_min": 3.2, "dose_max": 4.8, "dose_unit": "мг/кг", "frequency": "1 раз в с | доаудитных расхождений нет | conc=40.0 | global: мг/мл 4.0 (3.2–4.8) |
+| 1043 | ГЕНТАФЛОКС® инъекционный | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Инъекционно",  | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Инъекционно" | доаудитных расхождений нет | conc=65.0 | global: мг/мл 5 (4.0–6.0) |
+| 1044 | Армаваб | calc=null | ver=null | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0 (0–0) |
+| 1048 | Риботан | calc=null | ver=null | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0.1 (0.1–0.2) |
+| 1050 | Эмкар | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | course_days: calc='10 суток' ver='10', method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=20.0 | global: мг/мл 0 (0–0) |
+| 1054 | "Пульмовак" | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=50.0 | global: мг/мл 0 (0–0) |
+| 1057 | Ганаминовит | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "method": "внутрь (с кормом/в | ver={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "method": "внутрь (с кормом/в | course_days: calc='4-8 дней' ver=None | conc=0.1 | global: мг/мл 0 (0–0) |
+| 1058 | Тиеркал | calc={"dose_per_kg": 2.2, "dose_min": 1.76, "dose_max": 2.64, "dose_unit": "мг/кг", "method": "Инъекционн | ver={"dose_per_kg": 2.2, "dose_min": 1.76, "dose_max": 2.64, "dose_unit": "мг/кг", "method": "Инъекционн | доаудитных расхождений нет | conc=50.0 | global: мг/мл 1 (0.8–1.2) |
+| 1060 | Пастервакарм-2 | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=20.0 | global: мг/мл 0 (0–0) |
