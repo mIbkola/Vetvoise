@@ -1,0 +1,1524 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
+import 'gigaam_service.dart';
+
+/// Сервис для работы с голосом (Speech-to-Text и Text-to-Speech)
+/// Оптимизирован для hands-free использования ветеринарами
+class SpeechService {
+  final SpeechToText _stt = SpeechToText();
+  final FlutterTts _tts = FlutterTts();
+  // 🆕 v1.20.0: офлайн-движок GigaAM (Сбер) — если включён и модель готова,
+  // распознавание команды идёт через него, системный speech_to_text — фолбэк.
+  final GigaAmService _gigaAm = GigaAmService.instance;
+
+  bool _isSTTReady = false;
+  bool _isListening = false;
+  bool _continuousMode = false; // Hands-free режим
+  // 🆕 v1.16.1: флаг «сейчас говорит TTS». Пока он поднят — STT не запускается,
+  // а результаты, пришедшие во время озвучки, игнорируются (эхо-защита).
+  // Раньше в hands-free STT перезапускался через 800 мс после финального
+  // результата — пока TTS ещё говорил → микрофон слышал собственный голос
+  // и парсил его как новый ввод («приложение слушает само себя»).
+  bool _isSpeaking = false;
+  String _lastRecognizedWords = '';
+  String _statusText = 'Голос не активен';
+  String _currentLocaleId = 'ru_RU'; // Сохраняем выбранную локаль
+  // 🆕 v1.20.0: активна офлайн-транскрипция GigaAM (влияет на stopListening)
+  bool _offlineTranscribing = false;
+  StreamSubscription<String>? _gigaAmResultSub;
+  StreamSubscription<String>? _gigaAmStateSub;
+  StreamSubscription<String>? _gigaAmErrorSub;
+
+  // Геттеры
+  bool get isSTTReady => _isSTTReady;
+  bool get isListening => _isListening || _offlineTranscribing; // v1.20.0: офлайн-запись тоже «слушаю»
+  bool get isSpeaking => _isSpeaking; // 🆕 v1.16.1
+  bool get continuousMode => _continuousMode;
+  String get lastRecognizedWords => _lastRecognizedWords;
+  String get statusText => _statusText;
+  String get currentLocaleId => _currentLocaleId;
+
+  // Контроллеры стримов
+  final StreamController<String> _onWordsRecognized = StreamController<String>.broadcast();
+  final StreamController<bool> _onListeningStateChanged = StreamController<bool>.broadcast();
+  final StreamController<String> _onError = StreamController<String>.broadcast();
+  final StreamController<VoiceCommand> _onCommand = StreamController<VoiceCommand>.broadcast();
+
+  Stream<String> get onWordsRecognized => _onWordsRecognized.stream;
+  Stream<bool> get onListeningStateChanged => _onListeningStateChanged.stream;
+  Stream<String> get onError => _onError.stream;
+  Stream<VoiceCommand> get onCommand => _onCommand.stream;
+
+  /// Инициализация STT
+  Future<bool> initializeSTT() async {
+    try {
+      _isSTTReady = await _stt.initialize(
+        onError: _handleSTTError,
+        onStatus: _handleSTTStatus,
+        // Task 184: шумные логи плагина не нужны в проде — только в debug-сборке.
+        debugLogging: kDebugMode,
+      );
+
+      if (_isSTTReady) {
+        // Устанавливаем русский язык по умолчанию
+        final locales = await _stt.locales();
+        final russianLocale = locales.firstWhere(
+          (l) => l.localeId.startsWith('ru'),
+          orElse: () => locales.first,
+        );
+        _currentLocaleId = russianLocale.localeId;
+        debugPrint('🎤 STT initialized, locale: $_currentLocaleId, available: ${locales.length}');
+      }
+
+      return _isSTTReady;
+    } catch (e) {
+      _statusText = 'Ошибка STT: $e';
+      debugPrint('❌ STT init error: $e');
+      return false;
+    }
+  }
+
+  bool _isTTSReady = false;
+  bool get isTTSReady => _isTTSReady;
+
+  /// Инициализация TTS с retry логикой
+  /// При неудаче повторяет до [retries] раз с exponential backoff
+  Future<bool> initializeTTS({int retries = 3}) async {
+    for (int attempt = 0; attempt < retries; attempt++) {
+      try {
+        debugPrint('🔊 TTS init attempt ${attempt + 1}/$retries');
+
+        // Сначала проверяем доступность TTS двигателя
+        final engines = await _tts.getEngines;
+        debugPrint('🔊 TTS Engines available: $engines');
+
+        // Устанавливаем базовые параметры
+        await _tts.setLanguage('ru-RU');
+        await _tts.setSpeechRate(0.5);
+        await _tts.setVolume(1.0);
+        await _tts.setPitch(1.0);
+
+        // Ждём завершения озвучивания (важно для hands-free режима)
+        await _tts.awaitSpeakCompletion(true);
+
+        // Получаем доступные голоса и выбираем русский
+        final voices = await _tts.getVoices;
+        debugPrint('🔊 Available voices: ${voices?.length ?? 0}');
+
+        if (voices != null && voices is List) {
+          Map? russianVoice;
+          Map? englishVoice;
+          Map? defaultVoice;
+
+          for (final voice in voices) {
+            if (voice is Map) {
+              final locale = voice['locale']?.toString() ?? '';
+              final name = voice['name']?.toString() ?? '';
+              debugPrint('🔊 Voice: $name, locale: $locale');
+
+              // Ищем русский голос
+              if (locale.startsWith('ru') && russianVoice == null) {
+                russianVoice = voice;
+              }
+              // Ищем английский как fallback
+              else if (locale.startsWith('en') && englishVoice == null) {
+                englishVoice = voice;
+              }
+              // Запоминаем первый голос как fallback
+              if (defaultVoice == null) {
+                defaultVoice = voice;
+              }
+            }
+          }
+
+          // Выбираем голос в порядке приоритета
+          final selectedVoice = russianVoice ?? englishVoice ?? defaultVoice;
+          if (selectedVoice != null) {
+            await _tts.setVoice({
+              'name': selectedVoice['name'],
+              'locale': selectedVoice['locale']
+            });
+            debugPrint('🔊 Selected voice: ${selectedVoice['name']} (${selectedVoice['locale']})');
+          }
+        }
+
+        // Слушаем завершение озвучивания для hands-free режима
+        _tts.setCompletionHandler(() {
+          debugPrint('🔊 TTS completed');
+          _isSpeaking = false; // 🆕 эхо-защита снята
+          if (_continuousMode && !_isListening) {
+            // Автоматически продолжаем слушать после озвучивания
+            // (хвост 600 мс — чтобы не поймать реверберацию последнего слога)
+            Future.delayed(const Duration(milliseconds: 600), () {
+              if (_continuousMode && !_isListening && !_isSpeaking) {
+                startListening();
+              }
+            });
+          }
+        });
+
+        // Обработчик ошибок TTS
+        _tts.setErrorHandler((message) {
+          debugPrint('❌ TTS Error: $message');
+          _isSpeaking = false; // 🆕 эхо-защита снята и при ошибке
+          _statusText = 'Ошибка озвучки: $message';
+        });
+
+        // Обработчик начала озвучивания
+        _tts.setStartHandler(() {
+          debugPrint('🔊 TTS started speaking');
+          _isSpeaking = true; // 🆕 микрофон молчит, пока звучит озвучка
+        });
+
+        _isTTSReady = true;
+        debugPrint('✅ TTS initialized successfully');
+        return true;
+
+      } catch (e) {
+        debugPrint('⚠️ TTS init attempt ${attempt + 1} failed: $e');
+        _isTTSReady = false;
+        if (attempt < retries - 1) {
+          // Exponential backoff: 500ms, 1000ms, 2000ms
+          final delayMs = 500 * (1 << attempt);
+          debugPrint('⚠️ Retrying TTS init in ${delayMs}ms...');
+          await Future.delayed(Duration(milliseconds: delayMs));
+        }
+      }
+    }
+    // Все попытки провалились
+    final errorMsg = 'Не удалось инициализировать озвучку. Проверьте настройки TTS.';
+    debugPrint('❌ TTS init failed after $retries attempts');
+    _onError.add(errorMsg);
+    return false;
+  }
+
+  /// Начать прослушивание
+  Future<void> startListening() async {
+    // 🆕 v1.16.1: не открываем микрофон, пока звучит TTS — иначе STT
+    // распознаёт собственную озвучку (самопрослушивание).
+    if (_isSpeaking) {
+      debugPrint('🎤 TTS говорит — запуск STT отложен до конца озвучки');
+      return;
+    }
+
+    // 🆕 v1.20.0: офлайн-движок GigaAM — приоритетный путь, если включён
+    // пользователем и модель готова (READY = сессии в памяти).
+    if (_gigaAm.shouldUseForRecognition && !_gigaAm.isActive) {
+      await _startOfflineListening();
+      return;
+    }
+
+    if (!_isSTTReady) {
+      final ready = await initializeSTT();
+      if (!ready) {
+        _onError.add('Распознавание голоса недоступно');
+        return;
+      }
+    }
+
+    if (_isListening) {
+      debugPrint('🎤 Already listening, skipping');
+      return;
+    }
+
+    _lastRecognizedWords = '';
+    _statusText = 'Слушаю...';
+
+    try {
+      await _stt.listen(
+        onResult: _handleSTTResult,
+        localeId: _currentLocaleId, // КРИТИЧЕСКИ ВАЖНО — без этого слушает на системном языке!
+        listenFor: const Duration(seconds: 15),
+        pauseFor: const Duration(seconds: 4),
+        partialResults: true,
+        cancelOnError: false,
+        listenMode: ListenMode.dictation,
+      );
+
+      _isListening = true;
+      _onListeningStateChanged.add(true);
+      debugPrint('🎤 Started listening (locale=$_currentLocaleId)');
+    } catch (e) {
+      _statusText = 'Ошибка запуска: $e';
+      _isListening = false;
+      debugPrint('❌ STT listen error: $e');
+      _onError.add('Не удалось запустить распознавание: $e');
+    }
+  }
+
+  /// Остановить прослушивание
+  Future<void> stopListening() async {
+    // 🆕 v1.20.0: офлайн-транскрипция останавливается нативным флагом
+    if (_offlineTranscribing) {
+      _offlineTranscribing = false;
+      await _gigaAm.stopTranscribe();
+      _statusText = 'Готово';
+      _onListeningStateChanged.add(false);
+      return;
+    }
+    if (!_isListening) return;
+
+    await _stt.stop();
+    _isListening = false;
+    _statusText = 'Готово';
+    _onListeningStateChanged.add(false);
+  }
+
+  // ================= 🆕 v1.20.0: офлайн-движок GigaAM =================
+
+  /// Ленивые подписки на стримы GigaAM (создаются один раз).
+  void _ensureGigaAmSubscriptions() {
+    _gigaAmResultSub ??= _gigaAm.onResult.listen(_handleOfflineResult);
+    _gigaAmStateSub ??= _gigaAm.onStateChanged.listen((state) {
+      // Зеркалим состояния нативной записи/распознавания в общий статус
+      switch (state) {
+        case GigaAmService.stateRecording:
+          _statusText = 'Слушаю... (офлайн)';
+          break;
+        case GigaAmService.stateRecognizing:
+          _statusText = 'Распознаю...';
+          break;
+        case GigaAmService.stateReady:
+          // Запись завершилась — снимаем флаг «слушаю»
+          if (_offlineTranscribing) {
+            _offlineTranscribing = false;
+            _onListeningStateChanged.add(false);
+          }
+          break;
+        case GigaAmService.stateError:
+          // Урок v1.16.5: при любом сбое деградируем до видимого статуса,
+          // не оставляя UI в вечном «слушаю»
+          if (_offlineTranscribing) {
+            _offlineTranscribing = false;
+            _statusText = 'Ошибка офлайн-распознавания';
+            _onListeningStateChanged.add(false);
+          }
+          break;
+      }
+    });
+    _gigaAmErrorSub ??= _gigaAm.onError.listen((msg) {
+      if (_offlineTranscribing) {
+        _offlineTranscribing = false;
+        _statusText = 'Ошибка офлайн-распознавания';
+        _onListeningStateChanged.add(false);
+      }
+      _onError.add('GigaAM: $msg');
+    });
+  }
+
+  /// Офлайн-транскрипция через GigaAM (v1.20.0).
+  /// Нативный слой сам откроет AudioRecord, запишет до тишины (≤15 с),
+  /// прогонит ONNX-пайплайн и вернёт текст через стрим onResult.
+  Future<void> _startOfflineListening() async {
+    if (_offlineTranscribing) {
+      debugPrint('🎤 [GigaAM] Already transcribing, skipping');
+      return;
+    }
+    _ensureGigaAmSubscriptions();
+    _lastRecognizedWords = '';
+    _offlineTranscribing = true;
+    _statusText = 'Слушаю... (офлайн)';
+    _onListeningStateChanged.add(true);
+    debugPrint('🎤 [GigaAM] Starting offline transcription');
+    await _gigaAm.startTranscribe();
+  }
+
+  /// Результат офлайн-транскрипции — тот же контракт, что у _handleSTTResult
+  /// (финальный результат): эхо-фильтр → команды → текст дозировки.
+  void _handleOfflineResult(String text) {
+    // Эхо-защита v1.16.1 (та же, что у системного STT)
+    if (_isSpeaking) {
+      debugPrint('🎤 [GigaAM] Эхо-фильтр: игнорируем результат во время TTS');
+      return;
+    }
+
+    _lastRecognizedWords = text;
+    debugPrint('🎤 [GigaAM] final: $text');
+
+    final command = VoiceCommandParser.parse(text);
+    if (command != null) {
+      _onCommand.add(command);
+      _statusText = 'Команда: ${command.type}';
+    } else {
+      _onWordsRecognized.add(text);
+      _statusText = 'Распознано';
+    }
+
+    _offlineTranscribing = false;
+    _onListeningStateChanged.add(false);
+
+    // Hands-free: продолжаем слушать после обработки (тот же контракт,
+    // что в _handleSTTResult: рестарт только когда TTS замолчал)
+    if (_continuousMode && !_isSpeaking) {
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (_continuousMode && !_isListening && !_isSpeaking) {
+          startListening();
+        }
+      });
+    }
+  }
+
+  // ================= /офлайн-движок GigaAM =================
+
+  /// Включить/выключить hands-free режим
+  void setContinuousMode(bool enabled) {
+    _continuousMode = enabled;
+    if (!enabled && _isListening) {
+      stopListening();
+    }
+    _statusText = enabled ? 'Hands-free режим активен' : 'Hands-free режим выключен';
+  }
+
+  /// Озвучить текст
+  Future<void> speak(String text) async {
+    if (text.isEmpty) {
+      debugPrint('🔊 speak: empty text, skipping');
+      return;
+    }
+
+    if (!_isTTSReady) {
+      debugPrint('⚠️ TTS not ready, reinitializing...');
+      await initializeTTS();
+      if (!_isTTSReady) {
+        debugPrint('❌ TTS reinitialization failed, cannot speak');
+        return;
+      }
+    }
+
+    try {
+      // 🆕 v1.16.1: перед озвучкой гасим микрофон (микрофон — shared resource)
+      if (_isListening) {
+        await _stt.stop();
+        _isListening = false;
+        _onListeningStateChanged.add(false);
+      }
+      _isSpeaking = true;
+      // Убираем переносы строк - TTS их не озвучивает
+      // Заменяем на паузу через точку или запятую
+      final cleanText = text
+          .replaceAll('\n\n', '. ')  // Двойной перенос = пауза
+          .replaceAll('\n', ', ')     // Одиночный перенос = короткая пауза
+          .replaceAll(RegExp(r'\s+'), ' ')  // Убираем лишние пробелы
+          .trim();
+      
+      debugPrint('🔊 Speaking: $cleanText');
+      final result = await _tts.speak(cleanText);
+      debugPrint('🔊 speak result: $result');
+      _isSpeaking = false;
+    } catch (e) {
+      debugPrint('❌ speak error: $e');
+      _isSpeaking = false;
+      // Пробуем переинициализировать при ошибке
+      _isTTSReady = false;
+    }
+  }
+
+  /// Остановить озвучивание
+  Future<void> stopSpeaking() async {
+    await _tts.stop();
+    _isSpeaking = false; // 🆕 ручная остановка тоже снимает эхо-защиту
+  }
+
+  /// Обработка результата распознавания
+  void _handleSTTResult(SpeechRecognitionResult result) {
+    // 🆕 v1.16.1: эхо-защита — всё, что пришло во время озвучки (или в
+    // первые 300 мс после неё), это собственный голос TTS, не пользователь.
+    if (_isSpeaking) {
+      debugPrint('🎤 Эхо-фильтр: игнорируем распознанное во время TTS');
+      return;
+    }
+
+    _lastRecognizedWords = result.recognizedWords;
+
+    // Показываем partial results для визуальной обратной связи
+    if (!result.finalResult && result.recognizedWords.isNotEmpty) {
+      _statusText = result.recognizedWords;
+      debugPrint('🎤 partial: ${result.recognizedWords}');
+    }
+
+    if (result.finalResult) {
+      debugPrint('🎤 final: ${result.recognizedWords}');
+      // Проверяем на голосовые команды
+      final command = VoiceCommandParser.parse(result.recognizedWords);
+      if (command != null) {
+        _onCommand.add(command);
+        _statusText = 'Команда: ${command.type}';
+      } else {
+        _onWordsRecognized.add(result.recognizedWords);
+        _statusText = 'Распознано';
+      }
+
+      _isListening = false;
+      _onListeningStateChanged.add(false);
+
+      // В hands-free режиме продолжаем слушать после обработки.
+      // 🆕 v1.16.1: НЕ перезапускаем, пока звучит TTS-ответ — раньше
+      // рестарт через 800 мс попадал в середину озвучки, микрофон слышал
+      // сам себя и приложение начинало разговаривать с собой по кругу.
+      // Рестарт выполнит completion-handler TTS после конца озвучки.
+      if (_continuousMode && !_isSpeaking) {
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (_continuousMode && !_isListening && !_isSpeaking) {
+            startListening();
+          }
+        });
+      }
+    }
+  }
+
+  /// Обработка ошибок STT
+  void _handleSTTError(SpeechRecognitionError error) {
+    debugPrint('❌ STT error: ${error.errorMsg} (permanent=${error.permanent})');
+    _isListening = false;
+    _statusText = 'Ошибка: ${error.errorMsg}';
+    _onListeningStateChanged.add(false);
+    
+    // В hands-free режиме пробуем восстановиться
+    if (_continuousMode && error.permanent != true) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (_continuousMode && !_isListening) {
+          startListening();
+        }
+      });
+    } else if (error.permanent != true) {
+      // Для не-permanent ошибок уведомляем подписчика — home_screen решит что делать
+      // (например, перезапустить Vosk после STT сессии)
+      _onError.add(error.errorMsg);
+    } else {
+      _onError.add(error.errorMsg);
+    }
+  }
+
+  /// Обработка статуса STT
+  void _handleSTTStatus(String status) {
+    switch (status) {
+      case 'listening':
+        _statusText = 'Слушаю...';
+        break;
+      case 'notListening':
+        _statusText = 'Не слушаю';
+        _isListening = false;
+        _onListeningStateChanged.add(false);
+        break;
+      case 'done':
+        _statusText = 'Готово';
+        _isListening = false;
+        _onListeningStateChanged.add(false);
+        break;
+    }
+  }
+
+  /// Освобождение ресурсов. Безопасно вызывать несколько раз.
+  bool _disposed = false;
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _stt.cancel();
+    _tts.stop();
+    // v1.20.0: не оставляем подписки на стримы синглтона GigaAM
+    _gigaAmResultSub?.cancel();
+    _gigaAmStateSub?.cancel();
+    _gigaAmErrorSub?.cancel();
+    if (!_onWordsRecognized.isClosed) _onWordsRecognized.close();
+    if (!_onListeningStateChanged.isClosed) _onListeningStateChanged.close();
+    if (!_onError.isClosed) _onError.close();
+    if (!_onCommand.isClosed) _onCommand.close();
+  }
+}
+
+/// Голосовая команда
+class VoiceCommand {
+  final VoiceCommandType type;
+  final String? parameter;
+
+  const VoiceCommand(this.type, [this.parameter]);
+
+  @override
+  String toString() => 'VoiceCommand($type${parameter != null ? ', $parameter' : ''})';
+}
+
+/// Типы голосовых команд
+enum VoiceCommandType {
+  stop,        // "стоп", "хватит", "остановись"
+  repeat,      // "повтори", "ещё раз"
+  reset,       // "сброс", "новый расчёт", "заново"
+  help,        // "помощь", "что умеешь"
+  continuous,  // "hands-free", "режим без рук"
+  animal,      // Выбор животного
+  speakResult, // "озвучь результат", "скажи дозу"
+  earMode,     // "ухо", "слушай", "включи ухо"
+}
+
+/// Парсер голосовых команд
+class VoiceCommandParser {
+  static final Map<VoiceCommandType, List<String>> _commands = {
+    VoiceCommandType.stop: ['стоп', 'хватит', 'остановись', 'остановить', 'прекрати', 'выключи'],
+    VoiceCommandType.repeat: ['повтори', 'ещё раз', 'повторить', 'скажи ещё'],
+    VoiceCommandType.reset: ['сброс', 'новый расчёт', 'заново', 'очистить', 'сначала', 'новый'],
+    VoiceCommandType.help: ['помощь', 'что умеешь', 'помоги', 'команды', 'инструкция'],
+    VoiceCommandType.continuous: ['hands-free', 'без рук', 'режим без рук', 'свободные руки', 'автоматический режим'],
+    VoiceCommandType.speakResult: ['скажи дозу', 'озвучь результат', 'сколько давать', 'напомни дозу', 'произнеси'],
+    VoiceCommandType.earMode: ['ухо', 'слушай', 'включи ухо', 'слушать', 'начни слушать', 'голосовой режим'],
+  };
+
+  static VoiceCommand? parse(String input) {
+    final lower = input.toLowerCase().trim();
+    
+    for (final entry in _commands.entries) {
+      for (final keyword in entry.value) {
+        if (lower.contains(keyword)) {
+          return VoiceCommand(entry.key);
+        }
+      }
+    }
+    
+    return null;
+  }
+}
+
+/// Парсер голосового ввода - расширенная версия для ветеринаров
+class VoiceInputParser {
+  // ==========================================
+  // ВСЕ ЖИВОТНЫЕ С ИХ АЛИАСАМИ
+  // ==========================================
+  static final Map<String, List<String>> _animalKeywords = {
+    // КРС - крупный рогатый скот
+    'cattle': [
+      'крс', 'корова', 'коровы', 'корове', 'корову', 'коровой',
+      'бык', 'быка', 'быку', 'быком',
+      'теленок', 'телёнок', 'теленка', 'телёнка', 'теленку', 'телёнку',
+      'телка', 'тёлка', 'телки', 'тёлки',
+      'скот', 'скота', 'скоту',
+      'бурёнка', 'буренка', 'бурёнки', 'буренки',
+      'крупный рогатый', 'рогатый скот',
+    ],
+    // МРС - мелкий рогатый скот (овцы и козы)
+    'sheep': [
+      'овца', 'овцы', 'овце', 'овцу', 'овцой',
+      'баран', 'барана', 'барану', 'бараном',
+      'ягненок', 'ягнёнок', 'ягненка', 'ягнёнка', 'ягненку', 'ягнёнку',
+      'коза', 'козы', 'козе', 'козу', 'козой',
+      'козел', 'козёл', 'козла', 'козлу',
+      'козленок', 'козлёнок', 'козленка', 'козлёнка',
+      'мрс', 'мелкий рогатый', 'мелкий скот',
+    ],
+    // Лошади
+    'horse': [
+      'лошадь', 'лошади', 'лошадь', 'лошадью',
+      'конь', 'коня', 'коню', 'конём',
+      'пони',
+      'жеребенок', 'жеребёнок', 'жеребенка', 'жеребёнка', 'жеребенку', 'жеребёнку',
+      'мерин', 'мерина', 'мерину',
+      'кобыла', 'кобылы', 'кобыле', 'кобылу',
+      'жеребец', 'жеребца', 'жеребцу',
+    ],
+    // Свиньи
+    'pig': [
+      'свинья', 'свиньи', 'свинье', 'свинью', 'свиньей',
+      'свин', 'свином',
+      'хряк', 'хряка', 'хряку', 'хряком',
+      'поросенок', 'поросёнок', 'поросенка', 'поросёнка', 'поросенку', 'поросёнку',
+      'кабан', 'кабана', 'кабану',
+    ],
+    // Птицы
+    'poultry': [
+      'птица', 'птицы', 'птице', 'птицу', 'птицей',
+      'птиц', 'птичий', 'птичья',
+      'курица', 'курицы', 'курице', 'курицу', 'курицей',
+      'куры', 'кур', 'курам', 'курами',
+      'петух', 'петуха', 'петуху', 'петухом',
+      'цыплёнок', 'цыпленок', 'цыпленка', 'цыплёнка', 'цыпленку', 'цыплёнку',
+      'утка', 'утки', 'утке', 'утку', 'уткой',
+      'гусь', 'гуся', 'гусям', 'гусем',
+      'индейка', 'индейки', 'индейке', 'индейку',
+      'индюк', 'индюка', 'индюку',
+      'индюшонок', 'индюшонка', 'индюшат',
+    ],
+    // Собаки
+    'dog': [
+      'собака', 'собаки', 'собаке', 'собаку', 'собакой',
+      'пёс', 'пес', 'пса', 'псу', 'псом',
+      'щенок', 'щенка', 'щенку', 'щенком',
+      'собачий', 'собачья',
+      'кобель', 'кобеля', 'кобелю',  // это и пол
+      'сука', 'суки', 'сук', 'суке',  // это и пол
+    ],
+    // Кошки
+    'cat': [
+      'кошка', 'кошки', 'кошке', 'кошку', 'кошкой',
+      'кот', 'кота', 'коту', 'котом',
+      'котёнок', 'котенок', 'котенка', 'котёнка', 'котенку', 'котёнку',
+      'киса', 'кисы', 'кису',
+      'мурка', 'мурки', 'мурке', 'мурку',
+      'кошачий', 'кошачья',
+    ],
+    // Кролики (и пушные звери — это одно и то же для голосового ввода,
+    // препараты в базе после фикса тоже пересекаются)
+    'rabbit': [
+      'кролик', 'кролика', 'кролику', 'кроликом', 'кролики', 'кроликов',
+      'крольчиха', 'крольчихи', 'крольчиху',
+      'крольчонок', 'крольчонка', 'крольчата',
+      'пушной', 'пушного', 'пушные', 'пушных', 'пушным',
+      'пушной зверь', 'пушные звери', 'пушных зверей',
+      'нутрия', 'нутрии', 'нутрию',
+      'песец', 'песца', 'песцу',
+      'лиса', 'лисы', 'лису', 'лисой',
+      'лисица', 'лисицы', 'лисицу',
+      'соболь', 'соболя', 'соболю',
+      'хорек', 'хорь', 'хорька', 'хорьку',
+      'норка', 'норки', 'норку',
+      'шиншилла', 'шиншиллы', 'шиншиллу',
+    ],
+  };
+
+  // Короткие кличковые алиасы: substring-матч ловит их внутри других
+  // слов («виски», «кислая»), поэтому матчим по границам слов
+  // (Task 184 — см. _containsWord).
+  static final Map<String, List<String>> _animalWordAliases = {
+    'cat': ['кис'],
+  };
+
+  // ==========================================
+  // ПОЛ - БЕЗ КОНФЛИКТОВ С ЖИВОТНЫМИ
+  // ==========================================
+  static final List<String> _maleKeywords = [
+    // Общие термины для самца
+    'самец', 'самца', 'самцу', 'самцом',
+    'мужской', 'мужского', 'мужская', 'мужской пол',
+    'мальчик', 'мальчика',
+    // Видоспецифичные термины (те, что НЕ являются названием животного)
+    'жеребец', 'жеребца', 'жеребцу',
+    'селезень', 'селезня',
+    // Производные — местоимения вынесены в _malePronouns (границы слов)
+  ];
+
+  static final List<String> _femaleKeywords = [
+    // Общие термины для самки
+    'самка', 'самки', 'самке', 'самку', 'самкой',
+    'женский', 'женского', 'женская', 'женский пол',
+    'девочка', 'девочки',
+    // Беременность (только самки)
+    'беремен', 'беременная', 'беременность', 'сукотность', 'сукотная',
+    'стельн', 'стельная', 'стельность',
+    'яжереб', 'жеребая', 'жеребость',
+    'супорос', 'супоросная', 'суягность', 'суягная',
+    // Производные — местоимения вынесены в _femalePronouns (границы слов)
+  ];
+
+  // Местоимения пола: substring-матч ловит их внутри других слов
+  // («энрофлон» содержит «он», «коней» — «ней»), поэтому матчим
+  // по границам слов (Task 184 — см. _containsWord).
+  static final List<String> _malePronouns = ['он', 'его', 'нему'];
+  static final List<String> _femalePronouns = ['она', 'её', 'ее', 'ней'];
+
+  // ==========================================
+  // ВОЗРАСТ - КЛЮЧЕВЫЕ СЛОВА
+  // ==========================================
+  static final List<String> _ageKeywords = [
+    'возраст', 'возраста', 'возрасту',
+    'лет', 'год', 'года', 'году',
+    'месяц', 'месяца', 'месяцев', 'месяцу',
+    'неделя', 'недели', 'недель', 'неделю',
+    'день', 'дня', 'дней',
+    'старый', 'старая', 'старое', 'возраст',
+    'молодой', 'молодая', 'молодое', 'молод',
+    'щенок', 'щенка', 'котенок', 'котенка', 'теленок', 'теленка',
+    'поросенок', 'поросенка', 'жеребенок', 'жеребенка',
+    'ягненок', 'ягненка', 'цыпленок', 'цыпленка',
+  ];
+
+  // ==========================================
+  // ВЕС - КЛЮЧЕВЫЕ СЛОВА  
+  // ==========================================
+  static final List<String> _weightKeywords = [
+    'вес', 'веса', 'весу', 'весит', 'весят',
+    'килограмм', 'килограмма', 'килограммов', 'кило', 'кг', 'kg',
+    'грамм', 'грамма', 'граммов', 'гр', 'г',
+    'тонна', 'тонны', 'тонн', 'т',
+    'масса', 'массой', 'весом',
+    'тяжесть', 'тяжелый', 'тяжелая',
+  ];
+
+  // ==========================================
+  // ПРЕПАРАТЫ С ИХ АЛИАСАМИ
+  // ==========================================
+  static final Map<String, List<String>> _drugKeywords = {
+    // Антибиотики фторхинолоны
+    'энрофлоксацин': ['энрофлоксацин', 'энрофлокс', 'энрофлон', 'байтрил', 'энромаг', 'энроксол', 'энрофлок'],
+    'марбофлоксацин': ['марбофлоксацин', 'марбоцил', 'марбокил', 'марбофлок'],
+    'данофлоксацин': ['данофлоксацин', 'адвоквайл', 'данофлок'],
+    'орбитофлоксацин': ['орбитофлоксацин', 'орбит'],
+    
+    // Пенициллины
+    'амоксициллин': ['амоксициллин', 'амоксил', 'амоксиклав', 'синулокс', 'кламоксил', 'амоксогард', 'амоксицилин', 'амокс'],
+    'ампициллин': ['ампициллин', 'ампицил', 'ампиокс', 'ампицилин'],
+    'бензилпенициллин': ['бензилпенициллин', 'пенициллин', 'бициллин'],
+    
+    // Цефалоспорины
+    'цефтиофур': ['цефтиофур', 'экзенел', 'наксель', 'цефтиофур'],
+    'цефазолин': ['цефазолин', 'кефзол', 'цезолин', 'цефазолин'],
+    'цефтриаксон': ['цефтриаксон', 'лендацин', 'роцефин', 'цефтриаксон'],
+    'цефалексин': ['цефалексин', 'кефлекс', 'цефалекс'],
+    'цефапирин': ['цефапирин', 'цефапирин'],
+    
+    // Макролиды и линкозамиды
+    'тилозин': ['тилозин', 'тилан', 'тилозинол', 'фармазин', 'тилозин'],
+    'тилмикозин': ['тилмикозин', 'микотил', 'тилмикозин'],
+    'линкомицин': ['линкомицин', 'линкоцин', 'линкомицин'],
+    'клиндамицин': ['клиндамицин', 'клиндамицин', 'антироб'],
+    'эритромицин': ['эритромицин', 'эритромицин'],
+    'спирамицин': ['спирамицин', 'ровамицин', 'спирамицин'],
+    'тиамулин': ['тиамулин', 'тиамутин', 'тиамулин'],
+    
+    // Тетрациклины
+    'окситетрациклин': ['окситетрациклин', 'террамицин', 'окситетран', 'тетрациклин'],
+    'доксициклин': ['доксициклин', 'вибрамицин', 'доксивет', 'доксициклин'],
+    'тетрациклин': ['тетрациклин', 'тетрациклин', 'биомицин'],
+    
+    // Аминогликозиды
+    'гентамицин': ['гентамицин', 'гентам', 'гарамицин', 'гентамицин'],
+    'стрептомицин': ['стрептомицин', 'стрептомицин'],
+    'канамицин': ['канамицин', 'канамицин'],
+    'неомицин': ['неомицин', 'неомицин'],
+    'амикацин': ['амикацин', 'амикацин'],
+    
+    // Амфениколы
+    'флорфеникол': ['флорфеникол', 'флуникол', 'нуфлор', 'флорфеникол'],
+    'хлорамфеникол': ['хлорамфеникол', 'левомицетин', 'хлорамфеникол'],
+    
+    // Сульфаниламиды
+    'сульфадиметоксин': ['сульфадиметоксин', 'сульфадиметоксин'],
+    'сульфадимидин': ['сульфадимидин', 'сульфадин', 'сульфадимидин'],
+    'триметоприм': ['триметоприм', 'бисептол', 'триметоприм', 'сульфатон'],
+    
+    // Противопаразитарные - эндопаразиты
+    'ивермектин': ['ивермектин', 'ивермек', 'баймек', 'новомек', 'ивермектин'],
+    'дорамектин': ['дорамектин', 'дектомакс', 'дорамектин'],
+    'моксидектин': ['моксидектин', 'адвокейт', 'cydectin', 'моксидектин'],
+    'празиквантел': ['празиквантел', 'празицид', 'дронцит', 'цензин', 'празиквантел'],
+    'толтразурил': ['толтразурил', 'байкокс', 'стоп-кокцид', 'толтразурил'],
+    'диклазурил': ['диклазурил', 'клинакокс', 'диклазурил'],
+    'фенбендазол': ['фенбендазол', 'панакур', 'фенбендазол'],
+    'альбендазол': ['альбендазол', 'альбендазол', 'немозол'],
+    'мебендазол': ['мебендазол', 'вермокс', 'мебендазол'],
+    'пирантел': ['пирантел', 'пирантел', 'гельминтокс'],
+    'левамизол': ['левамизол', 'декарис', 'левамизол'],
+    
+    // Наружные от паразитов
+    'фипронил': ['фипронил', 'барс', 'фронтлайн', 'фиприст', 'фипронил'],
+    'имидаклоприд': ['имидаклоприд', 'адвантикс', 'имидаклоприд'],
+    'селамектин': ['селамектин', 'революшн', 'стронгхолд', 'селамектин'],
+    'перметрин': ['перметрин', 'перметрин', 'эктомер'],
+    'циперметрин': ['циперметрин', 'циперметрин'],
+    
+    // НПВС - нестероидные противовоспалительные
+    'мелоксикам': ['мелоксикам', 'меклокс', 'мелоксидил', 'метакам', 'локсиком', 'мелоксикам'],
+    'кетопрофен': ['кетопрофен', 'кетонал', 'кетофен', 'кетопрофен'],
+    'карпрофен': ['карпрофен', 'римадил', 'норокарп', 'карпрофен'],
+    'робенакоксиб': ['робенакоксиб', 'онсариор', 'робенакоксиб'],
+    'фенилбутазон': ['фенилбутазон', 'бутадион', 'фенилбутазон'],
+    'флуниксин': ['флуниксин', 'флуниксин', 'флунекс'],
+    'толфенамовая кислота': ['толфенамовая', 'толфенамик', 'толфен'],
+    'ведапрофен': ['ведапрофен', 'квадрисол', 'ведапрофен'],
+    'марококсиб': ['марококсиб', 'превикокс', 'марококсиб'],
+    
+    // Глюкокортикоиды
+    'дексаметазон': ['дексаметазон', 'дексамет', 'дексафорт', 'дексаметазон'],
+    'преднизолон': ['преднизолон', 'преднизолон', 'преднизон'],
+    'преднизон': ['преднизон', 'преднизон'],
+    'метилпреднизолон': ['метилпреднизолон', 'медрол', 'метилпред'],
+    'триамцинолон': ['триамцинолон', 'кеналог', 'триамцинолон'],
+    
+    // Анестетики и седативные
+    'кетамин': ['кетамин', 'калипсол', 'кетанест', 'кетамин'],
+    'ксилазин': ['ксилазин', 'ромпун', 'ксиланит', 'рометар', 'ксилазин'],
+    'золетил': ['золетил', 'тилетамин', 'золазепам', 'золетил'],
+    'пропофол': ['пропофол', 'пропофол', 'диприван'],
+    'тиопентал': ['тиопентал', 'тиопентал'],
+    'атропин': ['атропин', 'атропина сульфат', 'атропин'],
+    'лидокаин': ['лидокаин', 'ксикаин', 'лигнокаин', 'лидокаин', 'новокаин'],
+    'бупивакаин': ['бупивакаин', 'маркаин', 'бупивакаин'],
+    'мидазолам': ['мидазолам', 'дормикум', 'мидазолам'],
+    'диазепам': ['диазепам', 'валиум', 'реланиум', 'диазепам', 'седуксен'],
+    'ацепромазин': ['ацепромазин', 'промасед', 'ацепромазин'],
+    'детомидин': ['детомидин', 'домоседан', 'детомидин'],
+    'медетомидин': ['медетомидин', 'домитор', 'медетомидин'],
+    
+    // Противорвотные
+    'маропитант': ['маропитант', 'серения', 'церенния', 'маропитант'],
+    'метоклопрамид': ['метоклопрамид', 'церукал', 'реглан', 'метоклопрамид'],
+    'ондансетрон': ['ондансетрон', 'зофран', 'латран', 'ондансетрон'],
+    
+    // Диуретики
+    'фуросемид': ['фуросемид', 'лазикс', 'фуросемид'],
+    'спиронолактон': ['спиронолактон', 'верошпирон', 'спиронолактон'],
+    'маннитол': ['маннитол', 'маннит', 'маннитол'],
+    
+    // Гемостатики (кровоостанавливающие)
+    'транексам': ['транексам', 'транексамовая кислота', 'транексам'],
+    'этамзилат': ['этамзилат', 'дицинон', 'этамзилат'],
+    'фитоменадион': ['фитоменадион', 'викасол', 'витамин к', 'витамин к1', 'фитоменадион'],
+    'аминокапроновая кислота': ['аминокапроновая', 'аминокапронка', 'акк'],
+    
+    // Антигистаминные
+    'дифенгидрамин': ['дифенгидрамин', 'димедрол', 'дифенгидрамин'],
+    'диметинден': ['диметинден', 'фенистил', 'диметинден'],
+    'хлоропирамин': ['хлоропирамин', 'супрастин', 'хлоропирамин'],
+    'цетиризин': ['цетиризин', 'зиртек', 'цетиризин'],
+    'левоцетиризин': ['левоцетиризин', 'ксизал', 'левоцетиризин'],
+    
+    // Иммуномодуляторы и витамины
+    'гамавит': ['гамавит'],
+    'катозал': ['катозал', 'бутофан', 'катозал'],
+    'травматин': ['травматин', 'траумель', 'травматин'],
+    'рибофлавин': ['рибофлавин', 'витамин в2', 'рибофлавин'],
+    'тиамин': ['тиамин', 'витамин в1', 'тиамин'],
+    'пиридоксин': ['пиридоксин', 'витамин в6', 'пиридоксин'],
+    'цианокобаламин': ['цианокобаламин', 'витамин в12', 'цианокобаламин'],
+    'аскорбиновая кислота': ['аскорбинка', 'витамин с', 'аскорбиновая'],
+    'токоферол': ['токоферол', 'витамин е', 'токоферол'],
+    
+    // Сердечные
+    'дигоксин': ['дигоксин', 'дигоксин'],
+    'пимобендан': ['пимобендан', 'ветмедин', 'пимобендан'],
+    'эналаприл': ['эналаприл', 'эналаприл', 'энап'],
+    'рамиприл': ['рамиприл', 'рамиприл'],
+    'атенолол': ['атенолол', 'атенолол'],
+    
+    // Противодиабетические
+    'инсулин': ['инсулин', 'инсулин', 'лантус', 'протафан'],
+    
+    // Противосудорожные
+    'фенобарбитал': ['фенобарбитал', 'фенобарбитал'],
+    'бромид калия': ['бромид калия', 'бромид', 'бром'],
+    'габапентин': ['габапентин', 'габапентин', 'нейронтин'],
+    'леветирацетам': ['леветирацетам', 'кеппра', 'леветирацетам'],
+    
+    // Гормональные
+    'окситоцин': ['окситоцин', 'окситоцин'],
+    'простагландины': ['простагландин', 'эстуфалан', 'простин'],
+    'гонадотропин': ['гонадотропин', 'хгч', 'прегнил'],
+    
+    // Местные антисептики
+    'хлоргексидин': ['хлоргексидин', 'хлоргексидин'],
+    'мирамистин': ['мирамистин', 'мирамистин'],
+    'йод': ['йод', 'йод', 'повидон-йод'],
+    'перекись водорода': ['перекись', 'перекись водорода'],
+  };
+
+  // Концентрации препаратов (для понимания "5 процентов", "10%")
+  static final RegExp _concentrationPattern = RegExp(
+    r'(\d+(?:[.,]\d+)?)\s*(?:процент|%|пр|процентов)'
+  );
+
+  /// Парсит концентрацию из ввода
+  static double? parseConcentration(String input) {
+    final match = _concentrationPattern.firstMatch(input.toLowerCase());
+    if (match != null) {
+      return double.tryParse(match.group(1)!.replaceAll(',', '.'));
+    }
+    return null;
+  }
+
+  /// Ищет название препарата в голосовом вводе
+  static DrugMatch? findDrug(String input, List<String>? availableDrugs) {
+    final lower = input.toLowerCase();
+
+    // Сначала ищем по алиасам (точное совпадение подстроки)
+    for (final entry in _drugKeywords.entries) {
+      for (final alias in entry.value) {
+        if (lower.contains(alias)) {
+          // Проверяем концентрацию
+          final concentration = parseConcentration(input);
+          return DrugMatch(
+            inn: entry.key,
+            matchedAlias: alias,
+            concentration: concentration,
+          );
+        }
+      }
+    }
+
+    // Если передан список доступных препаратов, ищем прямое совпадение
+    if (availableDrugs != null) {
+      for (final drug in availableDrugs) {
+        if (lower.contains(drug.toLowerCase())) {
+          return DrugMatch(
+            inn: drug,
+            matchedAlias: drug,
+          );
+        }
+      }
+
+      // ⚠️ Fuzzy-поиск через Levenshtein distance.
+      // Google STT на русском часто искажает латинские названия препаратов:
+      // "Амоксиклав" → "Амоксилав", "Энрофлоксацин" → "Энрофлаксацин" и т.д.
+      // Простой contains() такое не найдёт. Ищем препарат, у которого расстояние
+      // Левенштейна до любого слова во вводе <= 2 (1-2 замены/вставки/удаления).
+      final words = lower
+          .replaceAll(RegExp(r'[^\w\sа-яё-]'), ' ')
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length >= 4)  // короткие слова (предлоги) пропускаем
+          .toList();
+
+      String? bestDrug;
+      int bestDistance = 999;
+      for (final drug in availableDrugs) {
+        final drugLower = drug.toLowerCase();
+        // Берём первое слово из названия препарата (без ®, цифр, скобок)
+        final drugWords = drugLower
+            .replaceAll(RegExp(r'[®(),\d.]'), ' ')
+            .split(RegExp(r'\s+'))
+            .where((w) => w.length >= 4)
+            .toList();
+        if (drugWords.isEmpty) continue;
+
+        for (final drugWord in drugWords) {
+          for (final inputWord in words) {
+            final dist = _levenshtein(drugWord, inputWord);
+            // Допускаем 1-2 опечатки для коротких, 2-3 для длинных
+            final threshold = drugWord.length >= 8 ? 3 : 2;
+            if (dist <= threshold && dist < bestDistance) {
+              bestDistance = dist;
+              bestDrug = drug;
+            }
+          }
+        }
+      }
+
+      if (bestDrug != null) {
+        debugPrint('🎤 Fuzzy match: "$bestDrug" (distance=$bestDistance) для ввода "$input"');
+        return DrugMatch(
+          inn: bestDrug,
+          matchedAlias: bestDrug,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /// Вычисляет расстояние Левенштейна между двумя строками.
+  /// Минимальное число вставок/удалений/замен, чтобы превратить [a] в [b].
+  /// Используется для fuzzy-поиска препаратов, когда STT исказил латинское название.
+  static int _levenshtein(String a, String b) {
+    if (a == b) return 0;
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+    if (a.length < b.length) {
+      final tmp = a; a = b; b = tmp;
+    }
+    var prevRow = List<int>.generate(b.length + 1, (i) => i);
+    for (int i = 0; i < a.length; i++) {
+      var curRow = List<int>.filled(b.length + 1, 0);
+      curRow[0] = i + 1;
+      for (int j = 0; j < b.length; j++) {
+        final cost = a[i] == b[j] ? 0 : 1;
+        curRow[j + 1] = [
+          prevRow[j + 1] + 1,    // удаление
+          curRow[j] + 1,         // вставка
+          prevRow[j] + cost,     // замена
+        ].reduce((x, y) => x < y ? x : y);
+      }
+      prevRow = curRow;
+    }
+    return prevRow[b.length];
+  }
+
+  /// Матчинг [word] по границам слов (Task 184): \b в Dart RegExp —
+  /// ASCII-only и для кириллицы не срабатывает, поэтому «не-буква»
+  /// описана явным классом. Нужен коротким ключам ('он', 'кис'),
+  /// которые substring-матч ловит внутри других слов.
+  static bool _containsWord(String lower, String word) {
+    final re = RegExp(
+      '(^|[^a-zа-яё])' + RegExp.escape(word) + r'($|[^a-zа-яё])',
+      caseSensitive: false,
+    );
+    return re.hasMatch(lower);
+  }
+
+  /// Ищет животное в голосовом вводе
+  static AnimalMatch? findAnimal(String input) {
+    final lower = input.toLowerCase();
+    
+    for (final entry in _animalKeywords.entries) {
+      for (final alias in entry.value) {
+        if (lower.contains(alias)) {
+          return AnimalMatch(
+            id: entry.key,
+            matchedAlias: alias,
+          );
+        }
+      }
+    }
+
+    // Короткие кличковые алиасы — по границам слов (см. _animalWordAliases)
+    for (final entry in _animalWordAliases.entries) {
+      for (final alias in entry.value) {
+        if (_containsWord(lower, alias)) {
+          return AnimalMatch(
+            id: entry.key,
+            matchedAlias: alias,
+          );
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Парсит пол из голосового ввода
+  static GenderMatch? findGender(String input) {
+    final lower = input.toLowerCase();
+    
+    // Сначала проверяем женский пол (включая признаки беременности)
+    for (final keyword in _femaleKeywords) {
+      if (lower.contains(keyword)) {
+        return GenderMatch(
+          gender: VoiceGender.female,
+          matchedAlias: keyword,
+        );
+      }
+    }
+
+    // Женские местоимения — по границам слов (см. _femalePronouns)
+    for (final keyword in _femalePronouns) {
+      if (_containsWord(lower, keyword)) {
+        return GenderMatch(
+          gender: VoiceGender.female,
+          matchedAlias: keyword,
+        );
+      }
+    }
+    
+    // Потом мужской
+    for (final keyword in _maleKeywords) {
+      if (lower.contains(keyword)) {
+        return GenderMatch(
+          gender: VoiceGender.male,
+          matchedAlias: keyword,
+        );
+      }
+    }
+
+    // Мужские местоимения — по границам слов (см. _malePronouns)
+    for (final keyword in _malePronouns) {
+      if (_containsWord(lower, keyword)) {
+        return GenderMatch(
+          gender: VoiceGender.male,
+          matchedAlias: keyword,
+        );
+      }
+    }
+    
+    return null;
+  }
+  
+  /// Парсит возраст из голосового ввода
+  /// Возвращает возраст в месяцах
+  static AgeMatch? findAge(String input) {
+    final lower = input.toLowerCase();
+    
+    // Паттерны для возраста - годы
+    final yearPatterns = [
+      RegExp(r'(\d+)\s*(?:лет|год|года|году)'),
+      RegExp(r'(?:возраст|лет|год|года)\s*(\d+)'),
+      RegExp(r'(\d+)\s*(?:г|год)(?:\s|$)'),
+    ];
+    
+    // Ищем годы
+    for (final pattern in yearPatterns) {
+      final match = pattern.firstMatch(lower);
+      if (match != null) {
+        final yearsStr = match.group(1);
+        if (yearsStr != null) {
+          final years = int.tryParse(yearsStr);
+          if (years != null && years > 0 && years < 50) {
+            return AgeMatch(
+              months: years * 12,
+              matchedText: '$years ${_getYearsWord(years)}',
+            );
+          }
+        }
+      }
+    }
+    
+    // Паттерны для возраста - месяцы
+    final monthPatterns = [
+      RegExp(r'(\d+)\s*(?:месяц|месяца|месяцев|мес)'),
+      RegExp(r'(?:возраст|месяц|месяца|месяцев)\s*(\d+)'),
+      RegExp(r'(\d+)\s*мес(?:\.|яц|яца|яцев)?(?:\s|$)'),
+    ];
+    
+    // Ищем месяцы
+    for (final pattern in monthPatterns) {
+      final match = pattern.firstMatch(lower);
+      if (match != null) {
+        final monthsStr = match.group(1);
+        if (monthsStr != null) {
+          final months = int.tryParse(monthsStr);
+          if (months != null && months > 0 && months < 600) {
+            return AgeMatch(
+              months: months,
+              matchedText: '$months ${_getMonthsWord(months)}',
+            );
+          }
+        }
+      }
+    }
+    
+    // Паттерны для возраста - недели
+    final weekPatterns = [
+      RegExp(r'(\d+)\s*(?:неделя|недели|недель|нед|н\.)'),
+      RegExp(r'(?:возраст|неделя|недели)\s*(\d+)'),
+    ];
+    
+    // Ищем недели
+    for (final pattern in weekPatterns) {
+      final match = pattern.firstMatch(lower);
+      if (match != null) {
+        final weeksStr = match.group(1);
+        if (weeksStr != null) {
+          final weeks = int.tryParse(weeksStr);
+          if (weeks != null && weeks > 0 && weeks < 200) {
+            return AgeMatch(
+              months: (weeks / 4.33).round(), // Примерно 4.33 недели в месяце
+              matchedText: '$weeks ${_getWeeksWord(weeks)}',
+            );
+          }
+        }
+      }
+    }
+    
+    // Паттерны для возраста - дни (для очень молодых)
+    final dayPatterns = [
+      RegExp(r'(\d+)\s*(?:день|дня|дней|дн|д\.)(?:\s|$)'),
+    ];
+    
+    // Ищем дни
+    for (final pattern in dayPatterns) {
+      final match = pattern.firstMatch(lower);
+      if (match != null) {
+        final daysStr = match.group(1);
+        if (daysStr != null) {
+          final days = int.tryParse(daysStr);
+          if (days != null && days > 0 && days < 365) {
+            return AgeMatch(
+              months: (days / 30.0).round(), // Примерно 30 дней в месяце
+              matchedText: '$days ${_getDaysWord(days)}',
+            );
+          }
+        }
+      }
+    }
+    
+    // Специальные случаи - "щенок", "котенок" и т.д. означают молодой возраст
+    if (lower.contains('щенок') || lower.contains('щенку') || lower.contains('щенка')) {
+      return AgeMatch(months: 6, matchedText: 'щенок (до года)');
+    }
+    if (lower.contains('котёнок') || lower.contains('котенок') || lower.contains('котенку')) {
+      return AgeMatch(months: 6, matchedText: 'котёнок (до года)');
+    }
+    if (lower.contains('теленок') || lower.contains('телёнок') || lower.contains('телёнку')) {
+      return AgeMatch(months: 6, matchedText: 'телёнок (до года)');
+    }
+    if (lower.contains('поросенок') || lower.contains('поросёнок') || lower.contains('поросенку')) {
+      return AgeMatch(months: 4, matchedText: 'поросёнок (до года)');
+    }
+    if (lower.contains('жеребенок') || lower.contains('жеребёнок') || lower.contains('жеребёнку')) {
+      return AgeMatch(months: 6, matchedText: 'жеребёнок (до года)');
+    }
+    
+    return null;
+  }
+  
+  /// Склонение слова "год"
+  static String _getYearsWord(int years) {
+    if (years == 1) return 'год';
+    if (years >= 2 && years <= 4) return 'года';
+    if (years >= 5 && years <= 20) return 'лет';
+    final lastDigit = years % 10;
+    if (lastDigit == 1) return 'год';
+    if (lastDigit >= 2 && lastDigit <= 4) return 'года';
+    return 'лет';
+  }
+  
+  /// Склонение слова "месяц"
+  static String _getMonthsWord(int months) {
+    if (months == 1) return 'месяц';
+    if (months >= 2 && months <= 4) return 'месяца';
+    if (months >= 5 && months <= 20) return 'месяцев';
+    final lastDigit = months % 10;
+    if (lastDigit == 1) return 'месяц';
+    if (lastDigit >= 2 && lastDigit <= 4) return 'месяца';
+    return 'месяцев';
+  }
+  
+  /// Склонение слова "неделя"
+  static String _getWeeksWord(int weeks) {
+    if (weeks == 1) return 'неделя';
+    if (weeks >= 2 && weeks <= 4) return 'недели';
+    if (weeks >= 5 && weeks <= 20) return 'недель';
+    final lastDigit = weeks % 10;
+    if (lastDigit == 1) return 'неделя';
+    if (lastDigit >= 2 && lastDigit <= 4) return 'недели';
+    return 'недель';
+  }
+  
+  /// Склонение слова "день"
+  static String _getDaysWord(int days) {
+    if (days == 1) return 'день';
+    if (days >= 2 && days <= 4) return 'дня';
+    if (days >= 5 && days <= 20) return 'дней';
+    final lastDigit = days % 10;
+    if (lastDigit == 1) return 'день';
+    if (lastDigit >= 2 && lastDigit <= 4) return 'дня';
+    return 'дней';
+  }
+
+  /// Проверяет, содержит ли текст ключевые слова возраста
+  static bool _hasAgeKeywords(String input) {
+    final lower = input.toLowerCase();
+    for (final keyword in _ageKeywords) {
+      if (lower.contains(keyword)) {
+        return true;
+      }
+    }
+    // Дополнительные проверки через регекспы
+    if (RegExp(r'\d+\s*(?:лет|год|года|месяц|месяца|месяцев|неделя|недели|недель)').hasMatch(lower)) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Проверяет, содержит ли текст ключевые слова веса
+  static bool _hasWeightKeywords(String input) {
+    final lower = input.toLowerCase();
+    for (final keyword in _weightKeywords) {
+      if (lower.contains(keyword)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Парсит вес из голосового ввода
+  static double? parseWeight(String input) {
+    final lower = input.toLowerCase();
+
+    // ⚠ Фикс M-6 (Task 183): юнит веса берётся из САМОГО матча, а не из
+    // глобальных contains по всей фразе. «котёнок 400 г» (граммы в КОНЦЕ
+    // строки) раньше возвращал 400 КГ: contains(' г ') не матчит конец
+    // строки, конверсия не срабатывала — для кошек/кроликов срезала
+    // валидация вида, для КРС 400 «кг» ехали в расчёт. Порядок: сначала
+    // юнит-явные паттерны (кг → тонны → граммы), затем «голое» число
+    // после слов веса (по умолчанию килограммы — прежняя семантика).
+    final unitPatterns = <RegExp, double>{
+      // «12.5 кг», «12,5 кило», «30 kg» → кг
+      RegExp(r'(\d+(?:[.,]\d+)?)\s*(?:килограмм|кило|кг|kg)(?:\s|$)'): 1,
+      // «0.5 т», «2 тонны» → ×1000 (лимита нет, как и раньше)
+      RegExp(r'(\d+(?:[.,]\d+)?)\s*(?:тонн|тонны|т)(?:\s|$)'): 1000,
+      // «400 г», «35 гр», «полтора грамма» → ×0.001 (мелкие животные)
+      RegExp(r'(\d+(?:[.,]\d+)?)\s*(?:грамм|гр|г)(?:\s|$)'): 0.001,
+    };
+
+    for (final entry in unitPatterns.entries) {
+      final match = entry.key.firstMatch(lower);
+      if (match != null) {
+        final weightStr = match.group(1)!.replaceAll(',', '.');
+        final weight = double.tryParse(weightStr);
+        if (weight != null && weight > 0) {
+          final kg = weight * entry.value;
+          if (entry.value == 1) {
+            if (kg < 2000) return kg; // разумный предел для кг
+          } else {
+            return kg; // тонны/граммы конвертируются как есть (прежняя семантика)
+          }
+        }
+      }
+    }
+
+    // «вес/весит/масса N» без юнита — по умолчанию килограммы
+    final bareWeight =
+        RegExp(r'(?:вес|весит|масса|весом)\s*(\d+(?:[.,]\d+)?)');
+    final bareMatch = bareWeight.firstMatch(lower);
+    if (bareMatch != null) {
+      var weightStr = bareMatch.group(1)!.replaceAll(',', '.');
+      weightStr = weightStr.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+      final weight = double.tryParse(weightStr);
+      if (weight != null && weight > 0 && weight < 2000) {
+        return weight;
+      }
+    }
+    
+    // Если есть ключевые слова возраста, но нет ключевых слов веса - 
+    // пытаемся отделить число возраста от числа веса
+    final hasAgeContext = _hasAgeKeywords(lower);
+    final hasWeightContext = _hasWeightKeywords(lower);
+    
+    // Ищем все числа в тексте
+    final numberPattern = RegExp(r'(\d+(?:[.,]\d+)?)');
+    final allNumbers = numberPattern.allMatches(lower);
+    
+    for (final match in allNumbers) {
+      final numberStr = match.group(1)!.replaceAll(',', '.');
+      final number = double.tryParse(numberStr);
+      if (number == null || number <= 0) continue;
+      
+      // Проверяем контекст вокруг числа
+      final startPos = match.start > 20 ? match.start - 20 : 0;
+      final endPos = match.end + 20 < lower.length ? match.end + 20 : lower.length;
+      final context = lower.substring(startPos, endPos);
+      
+      // Если в контексте есть ключевые слова веса - это вес
+      if (_hasWeightKeywords(context)) {
+        if (number < 2000) return number;
+      }
+      
+      // Если в контексте есть ключевые слова возраста - пропускаем
+      if (_hasAgeKeywords(context)) {
+        continue;
+      }
+      
+      // Если нет явных маркеров и число похоже на вес
+      if (!hasAgeContext && !hasWeightContext) {
+        // Если число > 500 - скорее всего вес крупного животного
+        // Если число < 500 и нет контекста возраста - может быть весом
+        if (number > 500 && number < 2000) {
+          return number;
+        }
+        // Если число в диапазоне веса мелких/средних животных
+        if (number >= 0.1 && number <= 500) {
+          return number;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Полный парсинг голосового ввода
+  static VoiceInputResult parse(String input, {List<String>? availableDrugs}) {
+    final weight = parseWeight(input);
+    final drug = findDrug(input, availableDrugs);
+    final animal = findAnimal(input);
+    final gender = findGender(input);
+    final age = findAge(input);
+    
+    return VoiceInputResult(
+      weight: weight,
+      drugMatch: drug,
+      animalMatch: animal,
+      genderMatch: gender,
+      ageMatch: age,
+      rawText: input,
+    );
+  }
+}
+
+/// Результат поиска препарата
+class DrugMatch {
+  final String inn; // Международное непатентованное название
+  final String matchedAlias; // То, что совпало в голосовом вводе
+  final double? concentration; // Концентрация если указана
+
+  const DrugMatch({
+    required this.inn,
+    required this.matchedAlias,
+    this.concentration,
+  });
+
+  @override
+  String toString() => 'DrugMatch($inn, conc: $concentration)';
+}
+
+/// Результат поиска животного
+class AnimalMatch {
+  final String id;
+  final String matchedAlias;
+
+  const AnimalMatch({
+    required this.id,
+    required this.matchedAlias,
+  });
+
+  @override
+  String toString() => 'AnimalMatch($id)';
+}
+
+/// Результат парсинга пола
+enum VoiceGender {
+  male,
+  female,
+}
+
+class GenderMatch {
+  final VoiceGender gender;
+  final String matchedAlias;
+
+  const GenderMatch({
+    required this.gender,
+    required this.matchedAlias,
+  });
+
+  @override
+  String toString() => 'GenderMatch($gender)';
+}
+
+/// Результат парсинга возраста
+class AgeMatch {
+  final int months;
+  final String matchedText;
+
+  const AgeMatch({
+    required this.months,
+    required this.matchedText,
+  });
+
+  @override
+  String toString() => 'AgeMatch($months months)';
+}
+
+/// Результат парсинга голосового ввода
+class VoiceInputResult {
+  final double? weight;
+  final DrugMatch? drugMatch;
+  final AnimalMatch? animalMatch;
+  final GenderMatch? genderMatch;
+  final AgeMatch? ageMatch;
+  final String rawText;
+
+  const VoiceInputResult({
+    this.weight,
+    this.drugMatch,
+    this.animalMatch,
+    this.genderMatch,
+    this.ageMatch,
+    required this.rawText,
+  });
+
+  bool get hasWeight => weight != null && weight! > 0;
+  bool get hasDrug => drugMatch != null;
+  bool get hasAnimal => animalMatch != null;
+  bool get hasGender => genderMatch != null;
+  bool get hasAge => ageMatch != null;
+
+  /// Генерирует текст подсказки для пользователя
+  String getHint() {
+    final parts = <String>[];
+    
+    if (!hasAnimal) parts.add('назовите животное');
+    if (!hasWeight) parts.add('укажите вес');
+    if (!hasDrug) parts.add('назовите препарат');
+    
+    if (parts.isEmpty) return 'Всё распознано';
+    return 'Не хватает: ${parts.join(', ')}';
+  }
+
+  @override
+  String toString() => 'VoiceInputResult(weight: $weight, drug: $drugMatch, animal: $animalMatch)';
+}

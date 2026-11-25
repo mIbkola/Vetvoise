@@ -1,0 +1,69 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.vetvoice.vetvoice"
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+
+    ndkVersion = "27.0.12077973"
+
+    defaultConfig {
+        applicationId = "com.vetvoice.vetvoice"
+        // ⚠️ Фикс: flutter_tts 4.2.5 требует minSdkVersion 24 (Android 7.0).
+        // Раньше было flutter.minSdkVersion (21). Android 5-6 давно не актуален.
+        minSdkVersion = 24
+        targetSdk = 36
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        release {
+            // Release-подпись из env (задаётся в CI: secrets KEYSTORE_*).
+            // Локальные сборки без env прозрачно падают на debug-ключ —
+            // flutter run --release продолжает работать.
+            def ksPath = System.getenv("KEYSTORE_FILE")
+            if (ksPath != null && file(ksPath).exists()) {
+                storeFile file(ksPath)
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Release-подпись когда keystore доступен (CI), иначе debug для локальной разработки.
+            def ksPath = System.getenv("KEYSTORE_FILE")
+            signingConfig = (ksPath != null && file(ksPath).exists()) ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    // Vosk offline speech recognition
+    implementation 'com.alphacephei:vosk-android:0.3.47'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // 🆕 v1.20.0: ONNX Runtime — офлайн-движок GigaAM (Сбер) для транскрипции высказываний
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.22.0'
+}

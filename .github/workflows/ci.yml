@@ -1,0 +1,128 @@
+name: CI
+
+# Проверки на каждый push/PR
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ds-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: DS-гейт v2 — ds.dart против design/tokens.json (дрейф ядра = красный)
+        run: python3 scripts/ds_gate.py
+
+      - name: "DB-гейт препаратов (Task 224: канон vetvoice под валидатором)"
+        # vetvoice — канонический источник баз для всей экосистемы
+        # (ВетЭко синкается отсюда). Раньше канон не валидировался
+        # вовсе: мусорные концентрации и передозировки жили здесь,
+        # а ловились только в копиях-потребителях.
+        # Без --reference: кураторский справочник correct_dosages_reference.json
+        # (Plumb's) живёт только в ВетЭко (родился там, в SYNC_FILES синка не
+        # входит) — кросс-сверка со справочником исполняется гейтом ВетЭко.
+        # Флаг, скопированный с ВетЭко-гейта при Task 224, давал ложный WARN
+        # «справочник не читается» каждым прогоном (Task 226 снял пятно).
+        run: python3 scripts/validate_drug_db.py
+
+      - name: Const-audit Dart — геттеры AppTheme внутри const (AOT-падение) и баланс скобок
+        # Task 184 (M-5 аудита 183): гейт существовал, но не был подключён —
+        # ловил только локальные запуски. Секундный, гонять на каждый push.
+        run: python3 scripts/dart_const_audit.py lib --balance
+
+      - name: Kotlin lint — баланс скобок/комментариев (kotlin_lint.py)
+        # Task 184 (M-5 аудита 183): kt-файлы вне flutter analyze, гейт
+        # проверяет их синтаксический баланс (незакрытые /* */ и {}).
+        run: |
+          for f in $(find android -name '*.kt' -type f | sort); do
+            python3 scripts/kotlin_lint.py "$f"
+          done
+
+
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🐍 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Pub get
+        run: flutter pub get
+
+      - name: 🔍 Analyze
+        # Task 179: continue-on-error снят — гейт должен держать, а не
+        # «существовать на бумаге». Мягкость оставлена флагами:
+        # info/warning не фатальны, errors валят шаг.
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: 🧪 Precache SDK fonts
+        # material_fonts нужны golden-тестам (FontLoader читает их из кеша
+        # SDK; паттерн vetos Task 176: без предкеша первый тест мог
+        # стартовать раньше фоновой загрузки)
+        run: flutter precache --universal
+
+      - name: 🧪 Test
+        # Task 179: continue-on-error снят — красный тест = красный CI.
+        # Голдены (21 кадр) и гейт-кейсы ввода теперь держат каждый push.
+        run: flutter test
+
+      - name: 📋 List dart files
+        run: |
+          echo "=== Dart files ==="
+          find lib -name "*.dart" | wc -l
+          echo "files in lib/"
+          find lib -name "*.dart" -exec wc -l {} + | tail -1
+
+      - name: ✅ Verify pubspec version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "Version: $VERSION"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+$ ]]; then
+            echo "::error::Версия должна быть в формате X.Y.Z+N, а не '$VERSION'"
+            exit 1
+          fi
+          echo "✅ Версия корректна"
+
+
+  db-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: DB-гейт препаратов — числовые базы против физио-пределов (Task 182)
+        # Кейс-мотивация: «не вколоть лошадке 3 л эпинефрина». Канарейки
+        # гейтят сам валидатор; ERROR = абсурдные дозы/объёмы/видовые
+        # запреты; ACK — проверенный долг из known-issues.json.
+        run: python3 scripts/validate_drug_db.py
+
+      - name: MIA-гейт — stewardship-слой ВОЗ 2024 поверх базы (идея №4)
+        # Покрытие: у каждого антибактериального (638) есть класс WHO MIA
+        # или явный out_of_scope; таблица классов сверена с официальным
+        # списком ВОЗ (фикстура в скрипте); mia_drugs.json не дрейфует
+        # от drugs_calc.json. Плашка «машина напоминает, человек решает».
+        run: python3 scripts/mia_gate.py
