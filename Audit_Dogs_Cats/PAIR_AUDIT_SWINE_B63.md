@@ -1,0 +1,16 @@
+# Аудит пар «Свиньи × препарат» — батч 63 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники не подтверждены; расхождения calc/ver зафиксированы в сводке `SWINE_DIFF_SUMMARY.md`.
+
+| id | Препарат | Было (Свиньи) | calc/ver | Расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 1586 | ШУСТРИК® поливитамины | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "method": "внутрь", "frequency": "по схеме"} | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "method": "внутрь", "frequency": "по схеме",  | dose_unit: calc=None ver='fixed', notes: calc=None ver='дозирование согласно инструкции' | conc=None | global: МЕ/мл 0.2 (0.16–0.24) |
+| 1587 | Доксициклин 200 | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", " | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=200.0 | global: мг/мл 10 (8.0–12.0) |
+| 1594 | ФЕБТАЛ® таблетки | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", " | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=150.0 | global: мг/мл 7.5 (6.0–9.0) |
+| 1596 | Соладокси® 500 | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", " | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=500.0 | global: мг/мл 10 (8.0–12.0) |
+| 1598 | Бутофан® | calc={"dose_per_kg": 10.0, "dose_unit": "мг/кг", "frequency": "1 раз в сутки", "notes": "Из файла: Бутал® | ver={"dose_per_kg": 10.0, "dose_unit": "мг/кг", "frequency": "1 раз в сутки", "notes": "Из файла: Бутал® | доаудитных расхождений нет | conc=100.0 | global: мг/мл 10.0 (8.0–12.0) |
+| 1601 | Филомецид | calc={"dose_per_kg": 7.5, "dose_unit": "мг/кг", "method": "перорально", "frequency": "1 раз"} | ver={"dose_per_kg": 7.5, "dose_unit": "мг/кг", "method": "перорально", "frequency": "1 раз"} | доаудитных расхождений нет | conc=100.0 | global: мг/г 10.625 (8.5–12.75) |
+| 1603 | Эстрофан | calc={"dose_per_kg": 0.005, "dose_min": 0.004, "dose_max": 0.006, "dose_unit": "мг/кг", "method": "Инъекц | ver={"dose_per_kg": 0.005, "dose_min": 0.004, "dose_max": 0.006, "dose_unit": "мг/кг", "method": "Инъекц | доаудитных расхождений нет | conc=0.25 | global: мг/мл 0.01 (0.008–0.012) |
+| 1604 | Сергон® | calc=null | ver=null | доаудитных расхождений нет | conc=None | global: МЕ/мл 0 (0–0) |
+| 1605 | Настойка чемерицы | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "1 раз в сутки", | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "по инструкци | method: calc=None ver='по инструкции', route: calc='по инструкции' ver=None | conc=None | global: мг/мл 0 (0–0) |
+| 1606 | Антибак 250 | calc={"dose_per_kg": 5, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "1 раз в сутк | ver={"dose_per_kg": 5.0, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "1 раз  | доаудитных расхождений нет | conc=250.0 | global: мг/мл 5 (5–10) |

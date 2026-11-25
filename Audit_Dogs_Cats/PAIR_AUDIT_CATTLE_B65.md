@@ -1,0 +1,16 @@
+# Аудит пар «КРС × препарат» — батч 65 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники по доступным страницам — не подтверждены; правки по подтверждённым дозам в батчах по собакам/кошкам (по аналогии).
+
+| id | Препарат | Было (КРС) | calc/ver | Доаудитные расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 1666 | Ветбензицин-5 | calc={"dose_per_kg": 10000, "dose_unit": "МЕ/кг", "method": "инъекционно", "frequency": "2 раза в день",  | ver={"dose_per_kg": 10000.0, "dose_unit": "МЕ/кг", "method": "инъекционно", "frequency": "2 раза в день" | dose_me_max: calc=10000 ver=None, dose_me_min: calc=10000 ver=None, dose_me_per_kg: calc=10000 ver=None | conc=1200000.0 | global: мг/мл 16000.0 (12800.0–19200.0) |
+| 1668 | ФЕБТАЛ® гранулы | calc={"dose_per_kg": 7.5, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "однократно | ver={"dose_per_kg": 7.5, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "однокр | доаудитных расхождений нет | conc=222.0 | global: мг/мл 7.5 (5.0–10.0) |
+| 1669 | ДЕЛЬЦИД® | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по показаниям", | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "наружно", "f | method: calc=None ver='наружно', route: calc='наружно' ver=None | conc=40.0 | global: мг/мл 6.0 (4.8–7.2) |
+| 1675 | Терраветин-500 | calc={"dose_per_kg": 30.0, "dose_min": 20.0, "dose_max": 40.0, "dose_unit": "мг/кг", "method": "внутрь (с | ver={"dose_per_kg": 30.0, "dose_min": 20.0, "dose_max": 40.0, "dose_unit": "мг/кг", "method": "внутрь (с | доаудитных расхождений нет | conc=500.0 | global: мг/г 10 (8.0–12.0) |
+| 1676 | Касептурин® | calc=null | ver=null | доаудитных расхождений нет | conc=500.0 | global: мг/мл 0 (0–0) |
+| 1677 | Димцип® | calc={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "frequency": "1 раз в | ver={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "frequency": "1 раз в | доаудитных расхождений нет | conc=500.0 | global: мг/мл 10.0 (8.0–12.0) |
+| 1679 | ТОКСИПРА ПЛЮС | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=5.0 | global: мг/мл 0 (0–0) |
+| 1683 | ПЕДИЛАЙН ХУФКЕА | calc=null | ver=null | доаудитных расхождений нет | conc=17.72 | global: мг/мл 0 (0–0) |
+| 1684 | Кальция борглюконат | calc={"dose_per_kg": 1, "dose_unit": "мл/кг", "dose_min": 0.5, "dose_max": 1, "method": "внутривенно (мед | ver={"dose_per_kg": 1.0, "dose_min": 0.5, "dose_max": 1.0, "dose_unit": "мл/кг", "method": "внутривенно  | доаудитных расхождений нет | conc=100.0 | global: мг/мл 0.75 (0.25–1) |
+| 1685 | Мазь тетрациклиновая 3% | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 20, "method": "наружно", "frequency": "1-2 раза в сут | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 20.0, "method": "наружно", "frequency": "1-2 раза | доаудитных расхождений нет | conc=3000.0 | global: мг/мл 10 (5–20) |

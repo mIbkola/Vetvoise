@@ -1,0 +1,16 @@
+# Аудит пар «КРС × препарат» — батч 28 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники по доступным страницам — не подтверждены; правки по подтверждённым дозам в батчах по собакам/кошкам (по аналогии).
+
+| id | Препарат | Было (КРС) | calc/ver | Доаудитные расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 702 | Аквидокс 750 | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "внутрь (с корм | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "внутрь (с ко | доаудитных расхождений нет | conc=750.0 | global: мг/мл 10 (8.0–12.0) |
+| 709 | СЕВАК® NEW L | calc=null | ver=null | доаудитных расхождений нет | conc=2.0 | global: мг/мл 0 (0–0) |
+| 710 | Спировет | calc={"dose_per_kg": 20, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "Внутримышеч | ver={"dose_per_kg": 20.0, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "Внутримыш | доаудитных расхождений нет | conc=600000 | global: МЕ/мл 20 (16.0–24.0) |
+| 714 | Эпримек® | calc={"dose_per_kg": 0.5, "dose_min": 0.4, "dose_max": 0.6, "dose_unit": "мг/кг", "method": "Перорально", | ver={"dose_per_kg": 0.5, "dose_min": 0.4, "dose_max": 0.6, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0.5 (0.4–0.6) |
+| 715 | Докситрон жевательные таблетки | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 10, "method": "перорально", "frequency": "1 раз в сут | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 10.0, "method": "перорально", "frequency": "1 раз | доаудитных расхождений нет | conc=20.0 | global: мг/мл 5 (4.0–6.0) |
+| 716 | Армаваб-2МЕ | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | course_days: calc='10 суток' ver='10', method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=1.0 | global: мг/мл 0 (0–0) |
+| 717 | ВЕРРЕС-БАgE- | calc=null | ver=null | доаудитных расхождений нет | conc=1.0 | global: мг/мл 0 (0–0) |
+| 722 | КОМБОВАК | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=10.0 | global: мг/мл 0 (0–0) |
+| 723 | КОМБОВАК-К | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=90.0 | global: мг/мл 0 (0–0) |
+| 724 | Окситетрациклина гидрохлорид для инъекций | calc={"dose_per_kg": 10, "dose_min": 5, "dose_max": 20, "method": "внутримышечно / перорально", "frequenc | ver={"dose_per_kg": 10.0, "dose_min": 5.0, "dose_max": 20.0, "method": "внутримышечно / перорально", "fr | доаудитных расхождений нет | conc=860.0 | global: мг/мл 10 (5–20) |

@@ -1,0 +1,16 @@
+# Аудит пар «Свиньи × препарат» — батч 25 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники не подтверждены; расхождения calc/ver зафиксированы в сводке `SWINE_DIFF_SUMMARY.md`.
+
+| id | Препарат | Было (Свиньи) | calc/ver | Расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 609 | Энрофлок-Э | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "внутрь", "freq | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "внутрь", "fr | доаудитных расхождений нет | conc=50.0 | global: мг/мл 3.75 (2.5–5.0) |
+| 610 | Метронид-Э | calc={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "frequency": "1 раз в с | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "frequency": "1 раз в с | доаудитных расхождений нет | conc=200.0 | global: мг/мл 15.0 (10.0–20.0) |
+| 611 | Левофлок-Э-10 | calc={"dose_per_kg": 0, "dose_min": 50000.0, "dose_max": 100000.0, "dose_unit": "МЕ/кг", "frequency": "1  | ver={"dose_per_kg": 0.0, "dose_min": 50000.0, "dose_max": 100000.0, "dose_unit": "МЕ/кг", "method": "вну | course_days: calc='5-7 дней' ver='5-7', dose_me_max: calc=100000.0 ver=None, dose_me_min: calc=50000.0 ver=None, dose_me_per_kg: calc=75000.0 ver=None, method: calc=None ver='внутрь', route: calc='внутрь, внутривенно' ver=None | conc=50.0 | global: мг/мл 10 (8.0–12.0) |
+| 612 | Роковак Нео | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=50.0 | global: мг/мл 0 (0–0) |
+| 615 | Тилодокс Р | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", " | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=100.0 | global: мг/мл 5 (4.0–6.0) |
+| 616 | ВНИИЗЖ НБ-Эн | calc=null | ver=null | доаудитных расхождений нет | conc=4.0 | global: мг/мл 0 (0–0) |
+| 617 | Флорфеникол 4% | calc={"dose_per_kg": 20, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "внутрь (с к | ver={"dose_per_kg": 20.0, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "внутрь (с | доаудитных расхождений нет | conc=40.0 | global: мг/мл 15 (12.0–18.0) |
+| 629 | Байкокс® 5% | calc={"dose_per_kg": 20, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "Перорально" | ver={"dose_per_kg": 20.0, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "Пероральн | доаудитных расхождений нет | conc=50.0 | global: мг/мл 15 (12.0–18.0) |
+| 634 | УНГОВАК FN | calc=null | ver=null | доаудитных расхождений нет | conc=10.0 | global: мг/мл 0 (0–0) |
+| 635 | Байкокс® 2,5% | calc={"dose_per_kg": 15, "dose_min": 10, "dose_max": 20, "method": "перорально", "frequency": "2 дня подр | ver={"dose_per_kg": 15.0, "dose_min": 10.0, "dose_max": 20.0, "method": "перорально", "frequency": "2 дн | доаудитных расхождений нет | conc=25.0 | global: мг/мл 7 (5.6000000000000005–8.4) |

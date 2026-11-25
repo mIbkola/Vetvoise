@@ -1,0 +1,16 @@
+# Аудит пар «Свиньи × препарат» — батч 08 (10 пар)
+
+Данные из `drugs_calc.json`/`verified_dosages.json`; источники не подтверждены; расхождения calc/ver зафиксированы в сводке `SWINE_DIFF_SUMMARY.md`.
+
+| id | Препарат | Было (Свиньи) | calc/ver | Расхождения | Концентрация |
+|---:|---|---|---|---|---|
+| 216 | Макротил-250 Орал | calc={"dose_per_kg": 20, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "Перорально" | ver={"dose_per_kg": 20.0, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "Пероральн | доаудитных расхождений нет | conc=250.0 | global: мг/мл 20 (16.0–24.0) |
+| 220 | ВЕРРЕС-КЧС-Е2 | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "по схеме вакцин | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутримышечн | course_days: calc='5 суток' ver='5', method: calc=None ver='внутримышечно или подкожно', route: calc='внутримышечно или подкожно' ver=None | conc=0.1 | global: мг/мл 0 (0–0) |
+| 222 | Энрамикс | calc={"dose_per_kg": 10, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "frequency": "1 раз в д | ver={"dose_per_kg": 10.0, "dose_min": 8.0, "dose_max": 12.0, "dose_unit": "мг/кг", "frequency": "1 раз в | доаудитных расхождений нет | conc=80.0 | global: мг/мл 10 (8.0–12.0) |
+| 224 | Номицеф | calc={"dose_per_kg": 2, "dose_min": 1.6, "dose_max": 2.4, "dose_unit": "мг/кг", "method": "Внутримышечно" | ver={"dose_per_kg": 2.0, "dose_min": 1.6, "dose_max": 2.4, "dose_unit": "мг/кг", "method": "Внутримышечн | доаудитных расхождений нет | conc=25.0 | global: мг/мл 1 (0.8–1.2) |
+| 229 | Разбавитель для вакцин против дерматофитозов животных | calc=null | ver=null | доаудитных расхождений нет | conc=2.0 | global: мг/мл 0 (0–0) |
+| 235 | Атетрокси® | calc={"dose_per_kg": 20, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "frequency": "1 раз в  | ver={"dose_per_kg": 20.0, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "frequency": "1 раз  | доаудитных расхождений нет | conc=200.0 | global: мг/мл 10 (8.0–12.0) |
+| 243 | Алюмиспрей | calc=null | ver=null | доаудитных расхождений нет | conc=9.6 | global: мг/мл 0 (0–0) |
+| 244 | Норфлокс-200 Орал | calc={"dose_per_kg": 5, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", " | ver={"dose_per_kg": 5.0, "dose_min": 4.0, "dose_max": 6.0, "dose_unit": "мг/кг", "method": "Перорально", | доаудитных расхождений нет | conc=200.0 | global: мг/мл 5 (4.0–6.0) |
+| 248 | Интрофлор-200 Орал | calc={"dose_per_kg": 20, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "внутрь", "f | ver={"dose_per_kg": 20.0, "dose_min": 16.0, "dose_max": 24.0, "dose_unit": "мг/кг", "method": "внутрь",  | доаудитных расхождений нет | conc=200.0 | global: мг/мл 15 (12.0–18.0) |
+| 249 | АЙСИДИВИТ® | calc={"dose_per_kg": 0, "dose_min": 0, "dose_max": 0, "dose_unit": "fixed", "frequency": "1 раз в день",  | ver={"dose_per_kg": 0.0, "dose_min": 0.0, "dose_max": 0.0, "dose_unit": "fixed", "method": "внутрь", "fr | course_days: calc='5-10 дней' ver='5-10', method: calc=None ver='внутрь', route: calc='внутрь' ver=None | conc=10.0 | global: мг/мл 7.75 (6.2–9.3) |
