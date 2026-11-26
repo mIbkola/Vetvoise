@@ -29166,10 +29166,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 80.0,
+      "dose_per_kg": 0,
       "dose_min": 64.0,
       "dose_max": 96.0,
-      "dose_unit": "мг/кг",
+      "dose_unit": "per_head",
       "animals": [
         "КРС"
       ],
@@ -42623,10 +42623,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 10,
+      "dose_per_kg": 0,
       "dose_min": 8.0,
       "dose_max": 12.0,
-      "dose_unit": "мг/кг",
+      "dose_unit": "fixed",
       "animals": [
         "Собаки",
         "Кошки"
@@ -62746,7 +62746,7 @@
         "Свиньи",
         "Птица"
       ],
-      "method": "внутрь, внутримышечно",
+      "method": "внутрь",
       "frequency": "1 раз в день",
       "course_days": "3-5 дней",
       "withdrawal_days": 10,
@@ -80006,7 +80006,7 @@
       "animals": [
         "КРС"
       ],
-      "method": "внутримышечно",
+      "method": "интравагинально",
       "frequency": "по показаниям",
       "course_days": "в течение 35 дн",
       "withdrawal_days": 0,
@@ -80906,10 +80906,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 0.1,
+      "dose_per_kg": 0,
       "dose_min": 0.08,
       "dose_max": 0.12,
-      "dose_unit": "мг/кг",
+      "dose_unit": "fixed",
       "animals": [
         "Собаки"
       ],
@@ -81057,7 +81057,7 @@
       "animals": [
         "КРС"
       ],
-      "method": "внутримышечно",
+      "method": "интравагинально",
       "frequency": "по показаниям",
       "course_days": "по показаниям",
       "withdrawal_days": 0,
@@ -81229,10 +81229,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "г",
-      "dose_per_kg": 2,
+      "dose_per_kg": 0,
       "dose_min": 1.6,
       "dose_max": 2.4,
-      "dose_unit": "мг/кг",
+      "dose_unit": "ppm_feed",
       "animals": [
         "КРС",
         "МРС",
@@ -83192,7 +83192,7 @@
       "form": "Порошок для приёма внутрь",
       "form_type": "powder",
       "concentration": 20.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "мг/г",
       "concentration_me": 0,
       "unit": "г",
       "dose_per_kg": 5.0,
@@ -87217,10 +87217,10 @@
       "concentration_unit": "МЕ/мл",
       "concentration_me": 500.0,
       "unit": "мл",
-      "dose_per_kg": 0.01,
+      "dose_per_kg": 0,
       "dose_min": 0.005,
       "dose_max": 0.01,
-      "dose_unit": "мл/кг",
+      "dose_unit": "per_head",
       "animals": [
         "КРС"
       ],
@@ -87318,7 +87318,7 @@
       "inn": "интерферон альфа собаки",
       "form": "Раствор для инъекций",
       "form_type": "vaccine",
-      "concentration": "2,5 мл",
+      "concentration": 1000000,
       "concentration_unit": "МЕ/мл",
       "concentration_me": 0.0,
       "unit": "мл",
@@ -89372,7 +89372,7 @@
       "inn": "пирипрол",
       "form": "Раствор для наружного применения",
       "form_type": "external",
-      "concentration": 500.0,
+      "concentration": 125,
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
@@ -89589,7 +89589,7 @@
       "form": "Эмульсия для инъекций",
       "form_type": "vaccine",
       "concentration": 300.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -89702,7 +89702,7 @@
       "form": "Эмульсия для инъекций",
       "form_type": "vaccine",
       "concentration": 300.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -89764,7 +89764,7 @@
       "form": "Сухой компонент \"дивак\"-лиофилизат для приготовления раствора для инъекций (живая/ инактивированная вакцина), жидкий компонент \"пентавак\"-суспензия для инъекций (инактивированная вакцина)",
       "form_type": "vaccine",
       "concentration": 1.5,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -89829,7 +89829,7 @@
       "form": "Суспензия для инъекций (инактивированная вакцина)",
       "form_type": "vaccine",
       "concentration": 3.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -89888,7 +89888,7 @@
       "form": "Суспензия для инъекций (инактивированная вакцина)",
       "form_type": "vaccine",
       "concentration": 3.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -89956,7 +89956,7 @@
       "form": "Сухой компонент - лиофилизат для приготовления суспензии для инъекций (живая вакцина), жидкий компонент - суспензия для инъекций (инактивированная вакцина)",
       "form_type": "vaccine",
       "concentration": 1.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -90090,7 +90090,7 @@
       "form": "Суспензия для инъекций (инактивированная вакцина)",
       "form_type": "vaccine",
       "concentration": 3.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -90339,10 +90339,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 0.01,
+      "dose_per_kg": 0,
       "dose_min": 0.008,
       "dose_max": 0.012,
-      "dose_unit": "мг/кг",
+      "dose_unit": "fixed",
       "animals": [
         "Собаки"
       ],
@@ -90382,7 +90382,7 @@
       "form": "Эмульсия для инъекций",
       "form_type": "vaccine",
       "concentration": 300.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -91189,7 +91189,7 @@
       "form": "Лиофилизат для приготовления раствора для интраназального, окулярного, аэрозольного, перорального применения и спрей-метода",
       "form_type": "vaccine",
       "concentration": 2.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -91409,7 +91409,7 @@
       "form": "Лиофилизат для приготовления раствора для интраназального, окулярного, перорального применения и спрей-метода",
       "form_type": "vaccine",
       "concentration": 2.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -91473,7 +91473,7 @@
       "form": "Суспензия для инъекций",
       "form_type": "vaccine",
       "concentration": 5.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -92273,7 +92273,7 @@
       "form": "Эмульсия для инъекций",
       "form_type": "injection",
       "concentration": 500.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "доз/флакон",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0,
@@ -93065,9 +93065,9 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 3.0,
-      "dose_min": 2.0,
-      "dose_max": 4.0,
+      "dose_per_kg": 5,
+      "dose_min": 5,
+      "dose_max": 10,
       "dose_unit": "мг/кг",
       "animals": [
         "Свиньи",
@@ -94340,10 +94340,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 0.2,
+      "dose_per_kg": 0,
       "dose_min": 0.16,
       "dose_max": 0.24,
-      "dose_unit": "мг/кг",
+      "dose_unit": "fixed",
       "animals": [
         "Собаки",
         "Кошки",
@@ -98550,9 +98550,9 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 3.75,
-      "dose_min": 2.5,
-      "dose_max": 5.0,
+      "dose_per_kg": 5,
+      "dose_min": 5,
+      "dose_max": 10,
       "dose_unit": "мг/кг",
       "animals": [
         "КРС",
@@ -102539,7 +102539,7 @@
       "id": 1492,
       "name": "Инспектор Квадро К",
       "inn": "фипронил, празиквантел, пирипроксифен, моксидектин",
-      "form": "Раствор для наружного применения",
+      "form": "Раствор для наружного применения (спот-он)",
       "form_type": "external",
       "concentration": 10.7,
       "concentration_unit": "мг/мл",
@@ -102739,7 +102739,7 @@
       "id": 1495,
       "name": "Инспектор Квадро С",
       "inn": "фипронил, празиквантел,  моксидектин, пирипроксифен",
-      "form": "Раствор для наружного применения",
+      "form": "Раствор для наружного применения (спот-он)",
       "form_type": "external",
       "concentration": 21.4,
       "concentration_unit": "мг/мл",
@@ -106035,7 +106035,7 @@
       "form": "Пластина ветеринарная",
       "form_type": "external",
       "concentration": 60.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "мг/пластина",
       "concentration_me": 0,
       "unit": "шт",
       "dose_per_kg": 0,
@@ -108763,7 +108763,7 @@
         "Кошки",
         "Птица"
       ],
-      "method": "перорально (с едой)",
+      "method": "внутримышечно",
       "frequency": "1-2 раза в день",
       "course_days": "5-7 дней",
       "withdrawal_days": 14,
@@ -108900,7 +108900,7 @@
       "form": "Таблетки",
       "form_type": "tablet",
       "concentration": 50.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "мг/таб",
       "concentration_me": 0,
       "unit": "шт",
       "dose_per_kg": 5,
@@ -112760,10 +112760,10 @@
       "id": 1643,
       "name": "ДИРОНЕТ® таблетки",
       "inn": "пирантел, празиквантел, ивермектин",
-      "form": "Таблетки для орального применения",
+      "form": "Таблетки",
       "form_type": "tablet",
       "concentration": 150.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "мг/таб",
       "concentration_me": 0,
       "unit": "шт",
       "dose_per_kg": 1.5,
@@ -114001,8 +114001,8 @@
       "dose_max": 20.0,
       "dose_unit": "мг/кг",
       "animals": [
-        "Птица",
-        "Кошки"
+        "Свиньи",
+        "Птица"
       ],
       "method": "внутрь (с кормом)",
       "frequency": "2 раза в день",
@@ -114273,10 +114273,10 @@
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
-      "dose_per_kg": 3,
+      "dose_per_kg": 0,
       "dose_min": 2.4,
       "dose_max": 3.6,
-      "dose_unit": "мг/кг",
+      "dose_unit": "fixed",
       "animals": [
         "Собаки"
       ],
@@ -114799,7 +114799,8 @@
       "dose_max": 12.0,
       "dose_unit": "мг/кг",
       "animals": [
-        "Собаки"
+        "Собаки",
+        "Кошки"
       ],
       "method": "внутрь",
       "frequency": "1 раз в день",
@@ -127485,10 +127486,7 @@
       "dose_unit": "мг/кг",
       "animals": [
         "КРС",
-        "Свиньи",
-        "МРС",
-        "Собаки",
-        "Кошки"
+        "Свиньи"
       ],
       "method": "инъекционно",
       "frequency": "1 раз в день",
@@ -127629,10 +127627,7 @@
       "dose_unit": "мг/кг",
       "animals": [
         "КРС",
-        "Свиньи",
-        "МРС",
-        "Собаки",
-        "Кошки"
+        "Свиньи"
       ],
       "method": "инъекционно",
       "frequency": "1 раз в день",
@@ -127767,8 +127762,7 @@
       "dose_max": 10,
       "dose_unit": "мг/кг",
       "animals": [
-        "Собаки",
-        "КРС"
+        "Кошки"
       ],
       "method": "наружно",
       "frequency": "по показаниям",
@@ -127880,7 +127874,7 @@
       "dose_unit": "мг/кг",
       "animals": [
         "Собаки",
-        "Птица"
+        "Кошки"
       ],
       "method": "местно в ухо",
       "frequency": "1-2 раза в день",
@@ -128320,9 +128314,7 @@
       "dose_max": 0,
       "dose_unit": "мг/кг",
       "animals": [
-        "КРС",
-        "Свиньи",
-        "Птица"
+        "Кошки"
       ],
       "method": "внутримышечно или подкожно",
       "frequency": "по схеме",
@@ -128722,8 +128714,6 @@
       "dose_max": 0,
       "dose_unit": "мг/кг",
       "animals": [
-        "КРС",
-        "Свиньи",
         "Птица"
       ],
       "method": "внутрикожно",
@@ -129365,10 +129355,7 @@
       "animals": [
         "КРС",
         "Свиньи",
-        "Собаки",
-        "МРС",
-        "Птица",
-        "Кошки"
+        "Птица"
       ],
       "method": "инъекционно",
       "frequency": "1-2 раза в день",
@@ -129970,7 +129957,7 @@
       "form": "Раствор для орального применения",
       "form_type": "oral",
       "concentration": null,
-      "concentration_unit": "МЕ/мл",
+      "concentration_unit": "МЕ/мл (комбинированный)",
       "concentration_me": 0.0,
       "unit": "мл",
       "dose_per_kg": 0.2,
@@ -130130,7 +130117,7 @@
       "form": "Раствор для инъекций и орального применения",
       "form_type": "injection",
       "concentration": 20.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "МЕ/мл (комбинированный)",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0.05,
@@ -131673,7 +131660,7 @@
       "form": "Раствор для орального применения",
       "form_type": "oral",
       "concentration": 100.0,
-      "concentration_unit": "мг/мл",
+      "concentration_unit": "МЕ/мл (комбинированный)",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0.2,
@@ -136039,7 +136026,7 @@
       "animals": [
         "КРС"
       ],
-      "method": "наружно",
+      "method": "внутримышечно или подкожно",
       "frequency": "1-2 раза в день",
       "course_days": "3 дня",
       "withdrawal_days": 0,
@@ -137119,7 +137106,7 @@
         "Свиньи",
         "Собаки"
       ],
-      "method": "перорально",
+      "method": "внутримышечно",
       "frequency": "2 раза в день",
       "course_days": "5-7 дней",
       "withdrawal_days": 14,
@@ -138906,7 +138893,7 @@
         "Кролики",
         "КРС"
       ],
-      "method": "наружно",
+      "method": "внутрь",
       "frequency": "птице, кроликам и пушным зверям — однократно",
       "course_days": "3-7 дней",
       "withdrawal_days": 28,
@@ -147840,7 +147827,7 @@
       "animals": [
         "КРС"
       ],
-      "method": "наружно",
+      "method": "внутримышечно или подкожно",
       "frequency": "1-2 раза в день",
       "course_days": "3-5 дней",
       "withdrawal_days": 28,
