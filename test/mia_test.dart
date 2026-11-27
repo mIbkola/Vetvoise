@@ -177,10 +177,10 @@ void main() {
   });
 
   group('Зеркало гейта: покрытие реальной базы', () {
-    test('у каждого антибактериального (638) есть класс или out_of_scope', () {
+    test('у каждого антибактериального (639) есть класс или out_of_scope', () {
       final antibacterial =
           db.drugs.where((d) => d.category == 'Антибактериальные').toList();
-      expect(antibacterial.length, 638);
+      expect(antibacterial.length, 639);
       final unresolved = <String>[];
       for (final d in antibacterial) {
         final info = mia.resolve(d.id);
