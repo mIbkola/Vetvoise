@@ -111,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const SizedBox(height: 16),
                   const Text(
-                    'База препаратов: 2401\n'
+                    'База препаратов: 3838\n'
                     'Вакцин и иммунобиологических: 698\n'
                     'Источники данных:\n'
                     '• Государственный реестр ЛС (fsvps.gov.ru)\n'
