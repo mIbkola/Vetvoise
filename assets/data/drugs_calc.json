@@ -47091,23 +47091,19 @@
       "name": "Мелоксидил®",
       "inn": "мелоксикам",
       "form": "Суспензия для орального применения",
-      "form_type": "suspension",
+      "form_type": "oral",
       "concentration": 1.5,
       "concentration_unit": "мг/мл",
       "concentration_me": 0,
       "unit": "мл",
       "dose_per_kg": 0.2,
-      "dose_min": 0.16000000000000003,
-      "dose_max": 0.24,
+      "dose_min": 0.1,
+      "dose_max": 0.2,
       "dose_unit": "мг/кг",
       "animals": [
-        "Собаки",
-        "Кошки",
-        "КРС",
-        "Свиньи",
-        "Лошади"
+        "Собаки"
       ],
-      "method": "внутрь",
+      "method": "перорально",
       "frequency": "1 раз в день",
       "course_days": "3-5 дней",
       "withdrawal_days": 21,
@@ -47137,45 +47133,13 @@
       "indications": "для лечения воспалительных заболеваний опорно-двигательного аппарата у собак",
       "animal_specific": {
         "Собаки": {
-          "dose_per_kg": 0.1,
-          "dose_min": 0.08,
-          "dose_max": 0.12,
-          "dose_unit": "мг/кг",
-          "method": "Перорально",
-          "frequency": "1 раз в день",
-          "notes": "Метакам, Локсиком"
-        },
-        "Кошки": {
           "dose_per_kg": 0.2,
-          "dose_min": 0.05,
+          "dose_min": 0.1,
           "dose_max": 0.2,
-          "method": "подкожно / перорально",
+          "dose_unit": "мг/кг",
+          "method": "перорально",
           "frequency": "1 раз в сутки",
-          "dose_unit": "мг/кг"
-        },
-        "КРС": {
-          "dose_per_kg": 0.5,
-          "dose_min": 0.2,
-          "dose_max": 0.5,
-          "method": "внутримышечно / подкожно",
-          "frequency": "1 раз в сутки",
-          "dose_unit": "мг/кг"
-        },
-        "Свиньи": {
-          "dose_per_kg": 0.4,
-          "dose_min": 0.2,
-          "dose_max": 0.4,
-          "method": "внутримышечно",
-          "frequency": "1 раз в сутки",
-          "dose_unit": "мг/кг"
-        },
-        "Лошади": {
-          "dose_per_kg": 0.6,
-          "dose_min": 0.3,
-          "dose_max": 0.6,
-          "method": "внутривенно",
-          "frequency": "1 раз в сутки",
-          "dose_unit": "мг/кг"
+          "notes": "По инструкции: 0,2 мг/кг 1 раз в сутки; поддерживающая доза 0,1 мг/кг."
         }
       },
       "pregnancy_contraindicated_animals": [
@@ -114742,10 +114706,10 @@
       "inn": "цефовецин",
       "form": "Сухой компонент - лиофилизированный порошок для приготовления раствора для инъекций, жидкий компонент - раствор для инъекций",
       "form_type": "injection",
-      "concentration": 852.0,
-      "concentration_unit": "мг/г",
+      "concentration": 80.0,
+      "concentration_unit": "мг/мл",
       "concentration_me": 0,
-      "unit": "г",
+      "unit": "мл",
       "dose_per_kg": 8,
       "dose_min": 6.4,
       "dose_max": 9.6,
@@ -114778,11 +114742,12 @@
           "dose_min": 6.4,
           "dose_max": 9.6,
           "dose_unit": "мг/кг",
-          "method": "Подкожно",
+          "method": "подкожно",
           "frequency": "1 раз в 14 дней",
           "notes": "Конфиенца, однократно"
         }
-      }
+      },
+      "notes": "После восстановления 80 мг/мл; 8 мг/кг подкожно однократно."
     },
     {
       "id": 1671,
